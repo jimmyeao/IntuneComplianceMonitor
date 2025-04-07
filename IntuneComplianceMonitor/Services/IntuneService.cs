@@ -47,102 +47,70 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
-        public async Task<List<DeviceViewModel>> GetDevicesAsync()
+        public async Task<(List<DeviceViewModel>, Dictionary<string, int>)> GetNonCompliantDevicesAsync()
         {
-            System.Diagnostics.Debug.WriteLine($"Starting GetDevicesAsync: {DateTime.Now}");
+            var result = new List<DeviceViewModel>();
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+
+            var allDevices = new List<ManagedDevice>();
 
             try
             {
-                // Add timeout handling
-                using (var cancellationTokenSource = new CancellationTokenSource())
-                {
-                    // Set a timeout of 60 seconds
-                    cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(60));
-
-                    System.Diagnostics.Debug.WriteLine("Calling _graphClient.DeviceManagement.ManagedDevices.GetAsync()");
-                    var devices = await _graphClient.DeviceManagement.ManagedDevices
-                        .GetAsync(cancellationToken: cancellationTokenSource.Token);
-
-                    System.Diagnostics.Debug.WriteLine($"Received response from ManagedDevices.GetAsync: {devices?.Value?.Count ?? 0} devices");
-
-                    var deviceViewModels = new List<DeviceViewModel>();
-
-                    if (devices?.Value != null)
+                var response = await _graphClient.DeviceManagement.ManagedDevices
+                    .GetAsync(req =>
                     {
-                        int deviceCount = 0;
-                        int totalDevices = devices.Value.Count;
+                        req.QueryParameters.Filter = "complianceState eq 'noncompliant'";
 
-                        // Process devices in batches of 100 to prevent UI hangs
-                        foreach (var device in devices.Value)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Processing device {++deviceCount}/{totalDevices}: {device.DeviceName}");
 
-                            var viewModel = new DeviceViewModel
-                            {
-                                DeviceId = device.Id,
-                                DeviceName = device.DeviceName,
-                                Owner = device.UserPrincipalName,
-                                DeviceType = MapDeviceType(device.OperatingSystem),
-                                LastCheckIn = device.LastSyncDateTime.HasValue ?
-                                    device.LastSyncDateTime.Value.DateTime :
-                                    DateTime.MinValue,
-                                Ownership = device.ManagedDeviceOwnerType?.ToString() ?? "Unknown",
-                                OSVersion = device.OperatingSystem + " " + device.OsVersion,
-                                SerialNumber = device.SerialNumber,
-                                Manufacturer = device.Manufacturer,
-                                Model = device.Model,
-                                ComplianceIssues = new List<string>()
-                            };
+                        req.QueryParameters.Top = 1000;
+                    }, cancellationToken: cancellationTokenSource.Token);
 
-                            // Get compliance state
-                            if (device.ComplianceState != Microsoft.Graph.Models.ComplianceState.Compliant)
-                            {
-                                try
-                                {
-                                    // Use a separate timeout for compliance checks
-                                    using (var complianceTokenSource = new CancellationTokenSource())
-                                    {
-                                        complianceTokenSource.CancelAfter(TimeSpan.FromSeconds(10));
-                                        await GetComplianceIssuesAsync(device.Id, viewModel.ComplianceIssues, complianceTokenSource.Token);
-                                    }
-                                }
-                                catch (OperationCanceledException)
-                                {
-                                    // If compliance check times out, add a generic message
-                                    viewModel.ComplianceIssues.Add("Compliance check timed out");
-                                }
-                            }
+                while (response != null)
+                {
+                    if (response.Value != null)
+                        allDevices.AddRange(response.Value);
 
-                            deviceViewModels.Add(viewModel);
-
-                            // If this is taking too long, allow cancellation
-                            if (cancellationTokenSource.Token.IsCancellationRequested)
-                            {
-                                System.Diagnostics.Debug.WriteLine("Operation was cancelled due to timeout");
-                                break;
-                            }
-                        }
+                    if (response.OdataNextLink != null)
+                    {
+                        response = await _graphClient.DeviceManagement.ManagedDevices
+                            .WithUrl(response.OdataNextLink)
+                            .GetAsync(cancellationToken: cancellationTokenSource.Token);
                     }
-
-                    System.Diagnostics.Debug.WriteLine($"Completed GetDevicesAsync: {DateTime.Now}");
-                    return deviceViewModels;
+                    else break;
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                System.Diagnostics.Debug.WriteLine("GetDevicesAsync timed out");
-                MessageBox.Show("The request to Intune timed out. Partial data may be displayed.",
-                    "Request Timeout", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return new List<DeviceViewModel>();
+
+                foreach (var device in allDevices)
+                {
+                    var type = MapDeviceType(device.OperatingSystem);
+                    var vm = new DeviceViewModel
+                    {
+                        DeviceId = device.Id,
+                        DeviceName = device.DeviceName,
+                        Owner = device.UserPrincipalName,
+                        DeviceType = type,
+                        LastCheckIn = device.LastSyncDateTime?.DateTime ?? DateTime.MinValue,
+                        Ownership = device.ManagedDeviceOwnerType?.ToString() ?? "Unknown",
+                        OSVersion = $"{device.OperatingSystem} {device.OsVersion}",
+                        SerialNumber = device.SerialNumber,
+                        Manufacturer = device.Manufacturer,
+                        Model = device.Model,
+                        ComplianceIssues = new List<string> { "Marked non-compliant by Intune" } // ← Skip detailed lookup
+                    };
+
+                    result.Add(vm);
+                    counts[type] = counts.TryGetValue(type, out var current) ? current + 1 : 1;
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in GetDevicesAsync: {ex.Message}");
-                // Handle exceptions, possibly log them
-                MessageBox.Show($"Error retrieving devices from Intune: {ex.Message}", "Data Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                throw new Exception($"Error retrieving devices from Intune: {ex.Message}", ex);
+                MessageBox.Show($"Error fetching non-compliant devices: {ex.Message}", "Data Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+
+            return (result, counts);
         }
+
+
 
 
         private async Task GetComplianceIssuesAsync(string deviceId, List<string> complianceIssues, CancellationToken cancellationToken = default)

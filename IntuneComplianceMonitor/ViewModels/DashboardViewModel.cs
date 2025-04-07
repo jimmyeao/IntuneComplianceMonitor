@@ -332,37 +332,35 @@ namespace IntuneComplianceMonitor.ViewModels
 
             try
             {
-                // Use the appropriate service from ServiceManager
                 if (ServiceManager.Instance.UseRealData)
                 {
-                    StatusMessage = "Fetching data from Intune...";
-                    _allDevicesCache = await ServiceManager.Instance.IntuneService.GetDevicesAsync();
-                    StatusMessage = "Data retrieved from Intune";
+                    StatusMessage = "Fetching non-compliant devices from Intune...";
+                    var (devices, deviceTypeCounts) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
+                    _allDevicesCache = devices;
+                    DevicesByType = deviceTypeCounts;
+                    StatusMessage = "Non-compliant data retrieved from Intune";
                 }
                 else
                 {
                     StatusMessage = "Loading sample data...";
                     _allDevicesCache = await ServiceManager.Instance.SampleDataService.GetDevicesAsync();
+                    // Still calculate types for sample data
+                    DevicesByType = _allDevicesCache
+                        .GroupBy(d => d.DeviceType)
+                        .ToDictionary(g => g.Key, g => g.Count());
                     StatusMessage = "Sample data loaded";
                 }
 
                 StatusMessage = "Processing device data...";
 
-                // Update metrics
-                TotalDevices = _allDevicesCache.Count;
-
-                var nonCompliant = _allDevicesCache.Where(d => d.ComplianceIssues.Any()).ToList();
-                NonCompliantDevices = nonCompliant.Count;
-                NonCompliantDevicesList = new ObservableCollection<DeviceViewModel>(nonCompliant);
+                // Since we're only loading non-compliant devices, these two are the same
+                NonCompliantDevices = _allDevicesCache.Count;
+                NonCompliantDevicesList = new ObservableCollection<DeviceViewModel>(_allDevicesCache);
 
                 var cutoffDate = DateTime.Now.AddDays(-DaysNotCheckedIn);
                 DevicesNotCheckedInRecently = _allDevicesCache.Count(d => d.LastCheckIn < cutoffDate);
 
-                // Update charts data
-                DevicesByType = _allDevicesCache
-                    .GroupBy(d => d.DeviceType)
-                    .ToDictionary(g => g.Key, g => g.Count());
-
+                // Ownership count (still useful)
                 DevicesByOwnership = _allDevicesCache
                     .GroupBy(d => d.Ownership)
                     .ToDictionary(g => g.Key, g => g.Count());
