@@ -18,19 +18,26 @@ namespace IntuneComplianceMonitor.Services
     {
         private readonly GraphServiceClient _graphClient;
         private readonly string[] _scopes = new[] {
-            "DeviceManagementManagedDevices.Read.All",
-            "DeviceManagementConfiguration.Read.All"
-        };
-        private readonly string _clientId = "787fff8e-d022-495a-a3ea-d306fc23a134"; // Replace with your actual client ID
-        private readonly string _tenantId = "739195a1-f5d6-4d9a-ac42-a1dbb7c7413d"; // Replace with your actual tenant ID
+        "DeviceManagementManagedDevices.Read.All",
+        "DeviceManagementConfiguration.Read.All"
+    };
+        private readonly string _clientId;
+        private readonly string _tenantId;
+        private readonly SettingsService _settingsService;
 
         // Rate limiting settings
         private readonly SemaphoreSlim _requestThrottler;
         private readonly int _maxConcurrentRequests = 5;
         private readonly TimeSpan _delayBetweenRequests = TimeSpan.FromMilliseconds(200);
 
-        public IntuneService()
+        public IntuneService(SettingsService settingsService)
         {
+            _settingsService = settingsService;
+
+            // Get credentials from settings
+            _clientId = _settingsService.CurrentSettings.IntuneClientId;
+            _tenantId = _settingsService.CurrentSettings.IntuneTenantId;
+
             try
             {
                 // Initialize MSAL authentication
@@ -79,12 +86,14 @@ namespace IntuneComplianceMonitor.Services
         {
             var result = new List<DeviceViewModel>();
             var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5)); // Increase timeout for large environments
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
             var allDevices = new List<ManagedDevice>();
 
-            // Handle large datasets with batching
-            const int batchSize = 1000; // Microsoft Graph typically limits to 1000 items per request
+            // Get the active devices timeframe from settings
+            int activeDevicesTimeframe = _settingsService?.CurrentSettings?.ActiveDevicesTimeframeInDays ?? 30;
+
+            const int batchSize = 1000;
             string nextLink = null;
 
             try
@@ -95,15 +104,17 @@ namespace IntuneComplianceMonitor.Services
                     return await _graphClient.DeviceManagement.ManagedDevices
                         .GetAsync(req =>
                         {
-                            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
+                            var cutoff = DateTime.UtcNow.AddDays(-activeDevicesTimeframe).ToString("o");
+
+                            // IMPORTANT: Make sure this filter is correct - it might have changed
+                            // Try without specifying compliance state first to verify connectivity
                             req.QueryParameters.Filter = $"complianceState eq 'noncompliant' and lastSyncDateTime ge {cutoff}";
+
+                            // Debug by logging the filter
+                            System.Diagnostics.Debug.WriteLine($"Non-compliant device filter: {req.QueryParameters.Filter}");
+
                             req.QueryParameters.Top = batchSize;
-                            // Select only needed fields to reduce payload size
-                            req.QueryParameters.Select = new[] {
-                                "id", "deviceName", "userPrincipalName", "operatingSystem",
-                                "osVersion", "managedDeviceOwnerType", "lastSyncDateTime",
-                                "serialNumber", "manufacturer", "model"
-                            };
+                            // Keep the select parameters to minimize data transfer
                         }, cancellationToken: cancellationTokenSource.Token);
                 });
 
@@ -134,17 +145,11 @@ namespace IntuneComplianceMonitor.Services
                     }
 
                     nextLink = nextPageResponse?.OdataNextLink;
-
-                    // Update progress for UI
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        StatusMessage?.Invoke($"Loading devices... ({allDevices.Count} loaded)");
-                    });
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Total devices retrieved: {allDevices.Count}");
+                System.Diagnostics.Debug.WriteLine($"Total non-compliant devices retrieved: {allDevices.Count}");
 
-                // Process the devices (convert to view models)
+                // Process the devices
                 foreach (var device in allDevices)
                 {
                     var type = MapDeviceType(device.OperatingSystem);
@@ -169,6 +174,7 @@ namespace IntuneComplianceMonitor.Services
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Error fetching non-compliant devices: {ex.Message}");
                 MessageBox.Show($"Error fetching non-compliant devices: {ex.Message}", "Data Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
@@ -177,12 +183,13 @@ namespace IntuneComplianceMonitor.Services
 
         public async Task<int> GetTotalDeviceCountAsync()
         {
-            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
+            // Get the active devices timeframe from settings
+            int activeDevicesTimeframe = _settingsService.CurrentSettings.ActiveDevicesTimeframeInDays;
+            var cutoff = DateTime.UtcNow.AddDays(-activeDevicesTimeframe).ToString("o");
 
             try
             {
-                var response = await ExecuteWithRateLimitingAsync(async () =>
-                {
+                var response = await ExecuteWithRateLimitingAsync(async () => {
                     return await _graphClient.DeviceManagement.ManagedDevices
                         .GetAsync(req =>
                         {

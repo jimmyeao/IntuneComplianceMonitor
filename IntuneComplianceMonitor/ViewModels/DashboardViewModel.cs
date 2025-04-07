@@ -53,7 +53,8 @@ namespace IntuneComplianceMonitor.ViewModels
 
         public DashboardViewModel()
         {
-            // No need to create services here, we'll use the ServiceManager
+            // Get settings
+            var settings = ServiceManager.Instance.SettingsService.CurrentSettings;
 
             Devices = new ObservableCollection<DeviceViewModel>();
             NonCompliantDevicesList = new ObservableCollection<DeviceViewModel>();
@@ -62,7 +63,9 @@ namespace IntuneComplianceMonitor.ViewModels
             ComplianceIssuesByType = new Dictionary<string, int>();
             DeviceTypes = new ObservableCollection<string>();
             OwnershipTypes = new ObservableCollection<string>();
-            DaysNotCheckedIn = 7; // Default value
+
+            // Use settings for default values
+            DaysNotCheckedIn = settings.DaysNotCheckedIn;
             StatusMessage = "Ready";
 
             RefreshCommand = new RelayCommand(_ => LoadData());
@@ -72,7 +75,7 @@ namespace IntuneComplianceMonitor.ViewModels
             // Apply initial filter if needed
             if (ShowOnlyNonCompliant || FilterByNotCheckedIn)
             {
-                // We'll load data when the view is loaded, so we don't need to call it here
+                // We'll load data when the view is loaded
             }
         }
 
@@ -678,6 +681,7 @@ namespace IntuneComplianceMonitor.ViewModels
         {
             _allDevicesCache = devices;
 
+            // Make sure these lines are properly setting the counts
             NonCompliantDevices = devices.Count;
             NonCompliantDevicesList = new ObservableCollection<DeviceViewModel>(devices);
 
@@ -701,6 +705,9 @@ namespace IntuneComplianceMonitor.ViewModels
 
             ApplyFilters();
             StatusMessage = $"Loaded {devices.Count} devices";
+            System.Diagnostics.Debug.WriteLine($"Total devices: {TotalDevices}");
+            System.Diagnostics.Debug.WriteLine($"Non-compliant devices: {NonCompliantDevices}");
+            System.Diagnostics.Debug.WriteLine($"Not checked in recently: {DevicesNotCheckedInRecently}");
         }
 
         private void StartComplianceReasonFetch(List<DeviceViewModel> devices)

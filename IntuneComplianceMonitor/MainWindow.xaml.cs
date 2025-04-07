@@ -1,4 +1,5 @@
-﻿using IntuneComplianceMonitor.ViewModels;
+﻿using IntuneComplianceMonitor.Services;
+using IntuneComplianceMonitor.ViewModels;
 using IntuneComplianceMonitor.Views;
 using System;
 using System.Windows;
@@ -50,14 +51,15 @@ namespace IntuneComplianceMonitor
         private void NavigateToPage(string pageName)
         {
             Page page = null;
-            bool forceRefresh = false; // By default, allow using cached data
+            bool forceRefresh = false;
 
             // If we're already on a page of the same type, force a refresh
             if (MainFrame.Content is Page currentPage &&
                 ((pageName == "Dashboard" && currentPage is DashboardPage) ||
                  (pageName == "Devices" && currentPage is DevicesPage) ||
                  (pageName == "NonCompliant" && currentPage is DevicesPage) ||
-                 (pageName == "NotCheckedIn" && currentPage is DevicesPage)))
+                 (pageName == "NotCheckedIn" && currentPage is DevicesPage) ||
+                 (pageName == "Settings" && currentPage is SettingsPage)))
             {
                 // We're navigating to the same page type, so use existing instance but force refresh
                 page = currentPage;
@@ -90,15 +92,15 @@ namespace IntuneComplianceMonitor
                         // Check if the DataContext is already set and is a DashboardViewModel
                         if (page.DataContext is DashboardViewModel notCheckedInViewModel)
                         {
-                            // Set days not checked in to 7 days by default
-                            notCheckedInViewModel.DaysNotCheckedIn = 7;
+                            // Set days not checked in from settings
+                            var settings = ServiceManager.Instance.SettingsService.CurrentSettings;
+                            notCheckedInViewModel.DaysNotCheckedIn = settings.DaysNotCheckedIn;
                             notCheckedInViewModel.FilterByNotCheckedIn = true;
                         }
                         break;
                     case "Settings":
-                        // Not implemented yet
-                        MessageBox.Show("Settings page is not implemented yet.", "Coming Soon", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
+                        page = new SettingsPage();
+                        break;
                     default:
                         page = new DashboardPage();
                         break;
@@ -108,10 +110,10 @@ namespace IntuneComplianceMonitor
             // If we got a new or existing page, use it
             if (page != null)
             {
-                // If reusing the same page, just refresh its data
+                // If reusing the same page, just refresh its data if it's a DashboardViewModel
                 if (forceRefresh && page.DataContext is DashboardViewModel viewModel)
                 {
-                    viewModel.LoadData(forceRefresh: false); // Use cached data when possible
+                    viewModel.LoadData(forceRefresh: false);
                 }
 
                 // Navigate to the page
