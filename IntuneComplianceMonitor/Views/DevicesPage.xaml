@@ -1,0 +1,191 @@
+﻿<Page x:Class="IntuneComplianceMonitor.Views.DevicesPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="clr-namespace:IntuneComplianceMonitor.Views"
+      xmlns:vm="clr-namespace:IntuneComplianceMonitor.ViewModels"
+      mc:Ignorable="d" 
+      d:DesignHeight="700" d:DesignWidth="1000"
+      Title="Devices">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BorderBrush" Value="#e0e0e0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+
+        <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <Style x:Key="FilterLabelStyle" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5,5,5,15">
+            <TextBlock Text="Device List" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Button Content="Refresh" Margin="15,0,0,0" Padding="10,5" Command="{Binding RefreshCommand}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="#0078D7"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#0063B1"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="Export CSV" Margin="10,0,0,0" Padding="10,5" Command="{Binding ExportCommand}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="#107C10"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#0B5C0B"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+
+        <!-- Filter Panel -->
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="5,0,5,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Filter Devices" Style="{StaticResource CardTitleStyle}"/>
+
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Search Box -->
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Search" Style="{StaticResource FilterLabelStyle}"/>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,5,0,0"/>
+                    </StackPanel>
+
+                    <!-- Device Type Filter -->
+                    <StackPanel Grid.Column="1" Margin="10,0,10,0">
+                        <TextBlock Text="Device Type" Style="{StaticResource FilterLabelStyle}"/>
+                        <ComboBox ItemsSource="{Binding DeviceTypes}" SelectedItem="{Binding SelectedDeviceType}" Padding="5" Margin="0,5,0,0"/>
+                    </StackPanel>
+
+                    <!-- Ownership Filter -->
+                    <StackPanel Grid.Column="2" Margin="10,0,10,0">
+                        <TextBlock Text="Ownership" Style="{StaticResource FilterLabelStyle}"/>
+                        <ComboBox ItemsSource="{Binding OwnershipTypes}" SelectedItem="{Binding SelectedOwnership}" Padding="5" Margin="0,5,0,0"/>
+                    </StackPanel>
+
+                    <!-- Last Check-In Filter -->
+                    <StackPanel Grid.Column="3" Margin="10,0,0,0">
+                        <TextBlock Text="Not Checked In For (Days)" Style="{StaticResource FilterLabelStyle}"/>
+                        <Grid Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding DaysNotCheckedIn, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+                            <Button Grid.Column="1" Content="Apply" Margin="5,0,0,0" Padding="10,0" Command="{Binding ApplyFiltersCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Devices List -->
+        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Devices" Style="{StaticResource CardTitleStyle}"/>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding Devices}" 
+                          AutoGenerateColumns="False" IsReadOnly="True" 
+                          GridLinesVisibility="Horizontal" BorderThickness="0"
+                          CanUserSortColumns="True" CanUserResizeColumns="True"
+                          RowStyle="{StaticResource {x:Type DataGridRow}}">
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCompliant}" Value="False">
+                                    <Setter Property="Background" Value="#FFEEEE"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Resources>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="*"/>
+                        <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="*"/>
+                        <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="*"/>
+                        <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="80"/>
+                        <DataGridTextColumn Header="Ownership" Binding="{Binding Ownership}" Width="100"/>
+                        <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="*"/>
+                        <DataGridTextColumn Header="Status" Binding="{Binding ComplianceStatus}" Width="100"/>
+                        <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="2*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <!-- Loading Overlay -->
+        <Grid Grid.RowSpan="3" Background="#80000000" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Loading..." Foreground="White" FontSize="20" HorizontalAlignment="Center"/>
+                <ProgressBar IsIndeterminate="True" Width="200" Height="10" Margin="0,10,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35828.75 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntuneComplianceMonitor", "IntuneComplianceMonitor\IntuneComplianceMonitor.csproj", "{C3E5A0A6-75B6-4917-B7E0-9664A88B2E0F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C3E5A0A6-75B6-4917-B7E0-9664A88B2E0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3E5A0A6-75B6-4917-B7E0-9664A88B2E0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3E5A0A6-75B6-4917-B7E0-9664A88B2E0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3E5A0A6-75B6-4917-B7E0-9664A88B2E0F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {075E1F6A-4CF6-4537-A73E-8A187039F02C}
+	EndGlobalSection
+EndGlobal
