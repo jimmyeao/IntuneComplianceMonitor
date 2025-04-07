@@ -50,82 +50,105 @@ namespace IntuneComplianceMonitor
         private void NavigateToPage(string pageName)
         {
             Page page = null;
+            bool forceRefresh = false; // By default, allow using cached data
 
-            switch (pageName)
+            // If we're already on a page of the same type, force a refresh
+            if (MainFrame.Content is Page currentPage &&
+                ((pageName == "Dashboard" && currentPage is DashboardPage) ||
+                 (pageName == "Devices" && currentPage is DevicesPage) ||
+                 (pageName == "NonCompliant" && currentPage is DevicesPage) ||
+                 (pageName == "NotCheckedIn" && currentPage is DevicesPage)))
             {
-                case "Dashboard":
-                    page = new DashboardPage();
-                    break;
-                case "Devices":
-                    page = new DevicesPage();
-                    break;
-                case "NonCompliant":
-                    // Create DevicesPage with non-compliant filter
-                    page = new DevicesPage();
-                    // Check if the DataContext is already set and is a DashboardViewModel
-                    if (page.DataContext is DashboardViewModel nonCompliantViewModel)
-                    {
-                        // Set a flag to indicate we want only non-compliant devices
-                        nonCompliantViewModel.ShowOnlyNonCompliant = true;
-                    }
-                    break;
-                case "NotCheckedIn":
-                    // Create DevicesPage with not checked in filter
-                    page = new DevicesPage();
-                    // Check if the DataContext is already set and is a DashboardViewModel
-                    if (page.DataContext is DashboardViewModel notCheckedInViewModel)
-                    {
-                        // Set days not checked in to 7 days by default
-                        notCheckedInViewModel.DaysNotCheckedIn = 7;
-                        notCheckedInViewModel.FilterByNotCheckedIn = true;
-                    }
-                    break;
-                case "Settings":
-                    // Not implemented yet
-                    MessageBox.Show("Settings page is not implemented yet.", "Coming Soon", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                default:
-                    page = new DashboardPage();
-                    break;
+                // We're navigating to the same page type, so use existing instance but force refresh
+                page = currentPage;
+                forceRefresh = true;
+            }
+            else
+            {
+                // Create a new page instance
+                switch (pageName)
+                {
+                    case "Dashboard":
+                        page = new DashboardPage();
+                        break;
+                    case "Devices":
+                        page = new DevicesPage();
+                        break;
+                    case "NonCompliant":
+                        // Create DevicesPage with non-compliant filter
+                        page = new DevicesPage();
+                        // Check if the DataContext is already set and is a DashboardViewModel
+                        if (page.DataContext is DashboardViewModel nonCompliantViewModel)
+                        {
+                            // Set a flag to indicate we want only non-compliant devices
+                            nonCompliantViewModel.ShowOnlyNonCompliant = true;
+                        }
+                        break;
+                    case "NotCheckedIn":
+                        // Create DevicesPage with not checked in filter
+                        page = new DevicesPage();
+                        // Check if the DataContext is already set and is a DashboardViewModel
+                        if (page.DataContext is DashboardViewModel notCheckedInViewModel)
+                        {
+                            // Set days not checked in to 7 days by default
+                            notCheckedInViewModel.DaysNotCheckedIn = 7;
+                            notCheckedInViewModel.FilterByNotCheckedIn = true;
+                        }
+                        break;
+                    case "Settings":
+                        // Not implemented yet
+                        MessageBox.Show("Settings page is not implemented yet.", "Coming Soon", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    default:
+                        page = new DashboardPage();
+                        break;
+                }
             }
 
-            MainFrame.Navigate(page);
+            // If we got a new or existing page, use it
+            if (page != null)
+            {
+                // If reusing the same page, just refresh its data
+                if (forceRefresh && page.DataContext is DashboardViewModel viewModel)
+                {
+                    viewModel.LoadData(forceRefresh: false); // Use cached data when possible
+                }
+
+                // Navigate to the page
+                if (!forceRefresh)
+                {
+                    MainFrame.Navigate(page);
+                }
+            }
         }
 
         private void SyncButton_Click(object sender, RoutedEventArgs e)
         {
-            // Show loading window or indicator
             var loadingWindow = new SyncProgressWindow();
             loadingWindow.Owner = this;
             loadingWindow.Show();
 
-            // Use Task to avoid freezing the UI
-            Task.Run(async () => {
+            Task.Run(async () =>
+            {
                 try
                 {
-                    await Task.Delay(500); // Brief delay to ensure loading window is shown
+                    await Task.Delay(500); // Allow spinner to show
 
-                    // Refresh the current page on the UI thread
-                    Dispatcher.Invoke(() => {
-                        if (MainFrame.Content is DashboardPage dashboardPage)
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (MainFrame.Content is Page page)
                         {
-                            // Refresh dashboard
-                            if (dashboardPage.DataContext is ViewModels.DashboardViewModel viewModel)
+                            if (page.DataContext is ViewModels.DashboardViewModel vm)
                             {
-                                viewModel.LoadData();
-                            }
-                        }
-                        else if (MainFrame.Content is DevicesPage devicesPage)
-                        {
-                            // Refresh devices
-                            if (devicesPage.DataContext is ViewModels.DashboardViewModel viewModel)
-                            {
-                                viewModel.LoadData();
+                                // Clear both memory cache and disk cache
+                                vm.ClearCache();
+                                // Load fresh data, forcing a refresh
+                                vm.LoadData(forceRefresh: true);
                             }
                         }
 
-                        // Close the loading window and show success message
-                        loadingWindow.Dispatcher.Invoke(() => {
+                        loadingWindow.Dispatcher.Invoke(() =>
+                        {
                             loadingWindow.Close();
                             MessageBox.Show("Successfully synchronized with Intune.", "Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
                         });
@@ -133,13 +156,26 @@ namespace IntuneComplianceMonitor
                 }
                 catch (Exception ex)
                 {
-                    // Handle any errors
-                    Dispatcher.Invoke(() => {
+                    Dispatcher.Invoke(() =>
+                    {
                         loadingWindow.Close();
                         MessageBox.Show($"Error syncing with Intune: {ex.Message}", "Sync Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     });
                 }
             });
+        }
+
+        // Add this method to MainWindow.xaml.cs
+        private void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainFrame.Content is Page page)
+            {
+                if (page.DataContext is ViewModels.DashboardViewModel vm)
+                {
+                    // No need to clear cache, just reload with current data
+                    vm.LoadData(forceRefresh: false);
+                }
+            }
         }
     }
 }

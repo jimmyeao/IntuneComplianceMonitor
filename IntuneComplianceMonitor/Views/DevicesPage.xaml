@@ -1,191 +1,175 @@
-﻿<Page x:Class="IntuneComplianceMonitor.Views.DevicesPage"
+﻿<!-- DevicesPage.xaml - Improved Layout -->
+<Page x:Class="IntuneComplianceMonitor.Views.DevicesPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:local="clr-namespace:IntuneComplianceMonitor.Views"
-      xmlns:vm="clr-namespace:IntuneComplianceMonitor.ViewModels"
-      mc:Ignorable="d" 
-      d:DesignHeight="700" d:DesignWidth="1000"
       Title="Devices">
 
-    <Page.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="BorderBrush" Value="#e0e0e0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="15"/>
-            <Setter Property="Margin" Value="5"/>
-        </Style>
-
-        <Style x:Key="CardTitleStyle" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#555"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
-        </Style>
-
-        <Style x:Key="FilterLabelStyle" TargetType="TextBlock">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,0,5,0"/>
-        </Style>
-    </Page.Resources>
-
-    <Grid>
+    <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5,5,5,15">
-            <TextBlock Text="Device List" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
-            <Button Content="Refresh" Margin="15,0,0,0" Padding="10,5" Command="{Binding RefreshCommand}">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#0078D7"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#0063B1"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-            </Button>
-            <Button Content="Export CSV" Margin="10,0,0,0" Padding="10,5" Command="{Binding ExportCommand}">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#107C10"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#0B5C0B"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </StackPanel>
-
-        <!-- Filter Panel -->
-        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="5,0,5,10">
+        <!-- Filters Card -->
+        <Border Grid.Row="0" Style="{StaticResource CardPanel}" Margin="5,5,5,15">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="Filter Devices" Style="{StaticResource CardTitleStyle}"/>
+                <TextBlock Grid.Row="0" 
+                           Text="Device Filters" 
+                           Style="{StaticResource SectionTitle}"/>
 
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
+                <WrapPanel Grid.Row="1" Margin="0,10,0,0">
                     <!-- Search Box -->
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Search" Style="{StaticResource FilterLabelStyle}"/>
-                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="5" Margin="0,5,0,0"/>
+                    <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="250">
+                        <TextBlock Text="Search" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                 Padding="8,6" 
+                                 BorderThickness="1" 
+                                 BorderBrush="#BBBBBB">
+                            <TextBox.Resources>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
                     </StackPanel>
 
                     <!-- Device Type Filter -->
-                    <StackPanel Grid.Column="1" Margin="10,0,10,0">
-                        <TextBlock Text="Device Type" Style="{StaticResource FilterLabelStyle}"/>
-                        <ComboBox ItemsSource="{Binding DeviceTypes}" SelectedItem="{Binding SelectedDeviceType}" Padding="5" Margin="0,5,0,0"/>
+                    <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="180">
+                        <TextBlock Text="Device Type" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <ComboBox ItemsSource="{Binding DeviceTypes}" 
+                                  SelectedItem="{Binding SelectedDeviceType}" 
+                                  Padding="8,6" 
+                                  BorderThickness="1" 
+                                  BorderBrush="#BBBBBB">
+                            <ComboBox.Resources>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </ComboBox.Resources>
+                        </ComboBox>
                     </StackPanel>
 
                     <!-- Ownership Filter -->
-                    <StackPanel Grid.Column="2" Margin="10,0,10,0">
-                        <TextBlock Text="Ownership" Style="{StaticResource FilterLabelStyle}"/>
-                        <ComboBox ItemsSource="{Binding OwnershipTypes}" SelectedItem="{Binding SelectedOwnership}" Padding="5" Margin="0,5,0,0"/>
+                    <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="180">
+                        <TextBlock Text="Ownership" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <ComboBox ItemsSource="{Binding OwnershipTypes}" 
+                                  SelectedItem="{Binding SelectedOwnership}" 
+                                  Padding="8,6" 
+                                  BorderThickness="1" 
+                                  BorderBrush="#BBBBBB">
+                            <ComboBox.Resources>
+                                <Style TargetType="{x:Type Border}">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </ComboBox.Resources>
+                        </ComboBox>
                     </StackPanel>
 
-                    <!-- Last Check-In Filter -->
-                    <StackPanel Grid.Column="3" Margin="10,0,0,0">
-                        <TextBlock Text="Not Checked In For (Days)" Style="{StaticResource FilterLabelStyle}"/>
-                        <Grid Margin="0,5,0,0">
+                    <!-- Days Not Checked In Filter -->
+                    <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="220">
+                        <TextBlock Text="Days Not Checked In" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" Text="{Binding DaysNotCheckedIn, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
-                            <Button Grid.Column="1" Content="Apply" Margin="5,0,0,0" Padding="10,0" Command="{Binding ApplyFiltersCommand}"/>
+
+                            <TextBox Grid.Column="0" 
+                                     Text="{Binding DaysNotCheckedIn, UpdateSourceTrigger=PropertyChanged}" 
+                                     Padding="8,6" 
+                                     BorderThickness="1" 
+                                     BorderBrush="#BBBBBB">
+                                <TextBox.Resources>
+                                    <Style TargetType="{x:Type Border}">
+                                        <Setter Property="CornerRadius" Value="4"/>
+                                    </Style>
+                                </TextBox.Resources>
+                            </TextBox>
+
+                            <CheckBox Grid.Column="1" 
+                                      Content="Filter" 
+                                      IsChecked="{Binding FilterByNotCheckedIn}" 
+                                      VerticalAlignment="Center" 
+                                      Margin="10,0,0,0"/>
                         </Grid>
                     </StackPanel>
-                </Grid>
+
+                    <!-- Apply Filters Button -->
+                    <Button Content="Apply Filters" 
+                            Command="{Binding ApplyFiltersCommand}" 
+                            Style="{StaticResource ModernButton}" 
+                            Margin="0,20,0,0" 
+                            Width="120"/>
+                </WrapPanel>
             </Grid>
         </Border>
 
-        <!-- Devices List -->
-        <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+        <!-- Devices Table -->
+        <Border Grid.Row="1" Style="{StaticResource CardPanel}" Margin="5,0,5,5">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="Devices" Style="{StaticResource CardTitleStyle}"/>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding Devices}" 
-                          AutoGenerateColumns="False" IsReadOnly="True" 
-                          GridLinesVisibility="Horizontal" BorderThickness="0"
-                          CanUserSortColumns="True" CanUserResizeColumns="True"
-                          RowStyle="{StaticResource {x:Type DataGridRow}}">
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" 
+                               Text="Devices" 
+                               Style="{StaticResource SectionTitle}"/>
+
+                    <Button Grid.Column="1" 
+                            Content="Export" 
+                            Command="{Binding ExportCommand}" 
+                            Style="{StaticResource ModernButton}" 
+                            Width="100"/>
+                </Grid>
+
+                <DataGrid Grid.Row="1" 
+                          ItemsSource="{Binding Devices}" 
+                          AutoGenerateColumns="False" 
+                          IsReadOnly="True"
+                          GridLinesVisibility="Horizontal"
+                          BorderThickness="1"
+                          BorderBrush="#DDDDDD"
+                          RowHeaderWidth="0"
+                          HeadersVisibility="Column"
+                          CanUserSortColumns="True"
+                          Background="Transparent"
+                          AlternatingRowBackground="#F9F9F9">
                     <DataGrid.Resources>
-                        <Style TargetType="DataGridRow">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsCompliant}" Value="False">
-                                    <Setter Property="Background" Value="#FFEEEE"/>
-                                </DataTrigger>
-                            </Style.Triggers>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#F0F0F0"/>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Style>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Padding" Value="10,5"/>
+                            <Setter Property="BorderThickness" Value="0"/>
                         </Style>
                     </DataGrid.Resources>
+
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="*"/>
-                        <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="*"/>
-                        <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="*"/>
-                        <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="80"/>
-                        <DataGridTextColumn Header="Ownership" Binding="{Binding Ownership}" Width="100"/>
-                        <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="*"/>
-                        <DataGridTextColumn Header="Status" Binding="{Binding ComplianceStatus}" Width="100"/>
-                        <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="2*"/>
+                        <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200"/>
+                        <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="240"/>
+                        <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="140"/>
+                        <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="100"/>
+                        <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="140"/>
+                        <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="*"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
         </Border>
-
-        <!-- Loading Overlay -->
-        <Grid Grid.RowSpan="3" Background="#80000000" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <TextBlock Text="Loading..." Foreground="White" FontSize="20" HorizontalAlignment="Center"/>
-                <ProgressBar IsIndeterminate="True" Width="200" Height="10" Margin="0,10,0,0"/>
-            </StackPanel>
-        </Grid>
     </Grid>
 </Page>

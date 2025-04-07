@@ -3,11 +3,13 @@ using Microsoft.Graph.Models;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Identity.Client;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using IntuneComplianceMonitor.ViewModels;
+using IntuneComplianceMonitor.Services;
 using System.Windows;
 
 namespace IntuneComplianceMonitor.Services
@@ -21,6 +23,11 @@ namespace IntuneComplianceMonitor.Services
         };
         private readonly string _clientId = "787fff8e-d022-495a-a3ea-d306fc23a134"; // Replace with your actual client ID
         private readonly string _tenantId = "739195a1-f5d6-4d9a-ac42-a1dbb7c7413d"; // Replace with your actual tenant ID
+
+        // Rate limiting settings
+        private readonly SemaphoreSlim _requestThrottler;
+        private readonly int _maxConcurrentRequests = 5;
+        private readonly TimeSpan _delayBetweenRequests = TimeSpan.FromMilliseconds(200);
 
         public IntuneService()
         {
@@ -39,6 +46,9 @@ namespace IntuneComplianceMonitor.Services
                 // Create Graph client
                 var authProvider = new BaseBearerTokenAuthenticationProvider(tokenProvider);
                 _graphClient = new GraphServiceClient(authProvider);
+
+                // Initialize the request throttler
+                _requestThrottler = new SemaphoreSlim(_maxConcurrentRequests);
             }
             catch (Exception ex)
             {
@@ -47,39 +57,94 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
+        // Wrapper method to enforce rate limiting
+        private async Task<T> ExecuteWithRateLimitingAsync<T>(Func<Task<T>> graphOperation, CancellationToken cancellationToken = default)
+        {
+            await _requestThrottler.WaitAsync(cancellationToken);
+            try
+            {
+                // Add a small delay to prevent bursts of requests
+                await Task.Delay(_delayBetweenRequests, cancellationToken);
+
+                // Execute the actual Graph operation
+                return await graphOperation();
+            }
+            finally
+            {
+                _requestThrottler.Release();
+            }
+        }
+
         public async Task<(List<DeviceViewModel>, Dictionary<string, int>)> GetNonCompliantDevicesAsync()
         {
             var result = new List<DeviceViewModel>();
             var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5)); // Increase timeout for large environments
 
             var allDevices = new List<ManagedDevice>();
 
+            // Handle large datasets with batching
+            const int batchSize = 1000; // Microsoft Graph typically limits to 1000 items per request
+            string nextLink = null;
+
             try
             {
-                var response = await _graphClient.DeviceManagement.ManagedDevices
-                    .GetAsync(req =>
-                    {
-                        req.QueryParameters.Filter = "complianceState eq 'noncompliant'";
-
-
-                        req.QueryParameters.Top = 1000;
-                    }, cancellationToken: cancellationTokenSource.Token);
-
-                while (response != null)
+                // Get initial page of results
+                var initialResponse = await ExecuteWithRateLimitingAsync(async () =>
                 {
-                    if (response.Value != null)
-                        allDevices.AddRange(response.Value);
+                    return await _graphClient.DeviceManagement.ManagedDevices
+                        .GetAsync(req =>
+                        {
+                            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
+                            req.QueryParameters.Filter = $"complianceState eq 'noncompliant' and lastSyncDateTime ge {cutoff}";
+                            req.QueryParameters.Top = batchSize;
+                            // Select only needed fields to reduce payload size
+                            req.QueryParameters.Select = new[] {
+                                "id", "deviceName", "userPrincipalName", "operatingSystem",
+                                "osVersion", "managedDeviceOwnerType", "lastSyncDateTime",
+                                "serialNumber", "manufacturer", "model"
+                            };
+                        }, cancellationToken: cancellationTokenSource.Token);
+                });
 
-                    if (response.OdataNextLink != null)
-                    {
-                        response = await _graphClient.DeviceManagement.ManagedDevices
-                            .WithUrl(response.OdataNextLink)
-                            .GetAsync(cancellationToken: cancellationTokenSource.Token);
-                    }
-                    else break;
+                // Process initial page
+                if (initialResponse?.Value != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Retrieved first page with {initialResponse.Value.Count} devices");
+                    allDevices.AddRange(initialResponse.Value);
                 }
 
+                nextLink = initialResponse?.OdataNextLink;
+                int pageCount = 1;
+
+                // Process subsequent pages
+                while (!string.IsNullOrEmpty(nextLink))
+                {
+                    var nextPageResponse = await ExecuteWithRateLimitingAsync(async () =>
+                    {
+                        return await _graphClient.DeviceManagement.ManagedDevices
+                            .WithUrl(nextLink)
+                            .GetAsync(cancellationToken: cancellationTokenSource.Token);
+                    });
+
+                    if (nextPageResponse?.Value != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Retrieved page {++pageCount} with {nextPageResponse.Value.Count} devices");
+                        allDevices.AddRange(nextPageResponse.Value);
+                    }
+
+                    nextLink = nextPageResponse?.OdataNextLink;
+
+                    // Update progress for UI
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        StatusMessage?.Invoke($"Loading devices... ({allDevices.Count} loaded)");
+                    });
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Total devices retrieved: {allDevices.Count}");
+
+                // Process the devices (convert to view models)
                 foreach (var device in allDevices)
                 {
                     var type = MapDeviceType(device.OperatingSystem);
@@ -95,7 +160,7 @@ namespace IntuneComplianceMonitor.Services
                         SerialNumber = device.SerialNumber,
                         Manufacturer = device.Manufacturer,
                         Model = device.Model,
-                        ComplianceIssues = new List<string> { "Marked non-compliant by Intune" } // ← Skip detailed lookup
+                        ComplianceIssues = new List<string> { "Loading..." }
                     };
 
                     result.Add(vm);
@@ -110,18 +175,100 @@ namespace IntuneComplianceMonitor.Services
             return (result, counts);
         }
 
+        public async Task<int> GetTotalDeviceCountAsync()
+        {
+            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
 
+            try
+            {
+                var response = await ExecuteWithRateLimitingAsync(async () =>
+                {
+                    return await _graphClient.DeviceManagement.ManagedDevices
+                        .GetAsync(req =>
+                        {
+                            req.QueryParameters.Count = true;
+                            req.QueryParameters.Top = 1;
+                            req.QueryParameters.Filter = $"lastSyncDateTime ge {cutoff}";
+                        });
+                });
 
+                return (int)(response?.OdataCount ?? 0);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error fetching total device count: {ex.Message}");
+                return 0;
+            }
+        }
 
-        private async Task GetComplianceIssuesAsync(string deviceId, List<string> complianceIssues, CancellationToken cancellationToken = default)
+        public async Task<Dictionary<string, int>> GetDeviceCountsByOwnershipAsync()
+        {
+            var ownershipTypes = new[] { "company", "personal" };
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
+
+            foreach (var type in ownershipTypes)
+            {
+                var response = await ExecuteWithRateLimitingAsync(async () =>
+                {
+                    return await _graphClient.DeviceManagement.ManagedDevices
+                        .GetAsync(req =>
+                        {
+                            req.QueryParameters.Count = true;
+                            req.QueryParameters.Top = 1;
+                            req.QueryParameters.Filter = $"managedDeviceOwnerType eq '{type}' and lastSyncDateTime ge {cutoff}";
+                        });
+                });
+
+                counts[type] = (int)(response?.OdataCount ?? 0);
+            }
+
+            return counts;
+        }
+
+        public async Task<Dictionary<string, int>> GetDeviceCountsByTypeAsync()
+        {
+            var osTypes = new[] { "windows", "macos", "ios", "android" };
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
+
+            foreach (var os in osTypes)
+            {
+                var response = await ExecuteWithRateLimitingAsync(async () =>
+                {
+                    return await _graphClient.DeviceManagement.ManagedDevices
+                        .GetAsync(req =>
+                        {
+                            req.QueryParameters.Count = true;
+                            req.QueryParameters.Top = 1;
+                            req.QueryParameters.Filter = $"operatingSystem eq '{os}' and lastSyncDateTime ge {cutoff}";
+                        });
+                });
+
+                counts[os] = (int)(response?.OdataCount ?? 0);
+            }
+
+            return counts;
+        }
+
+        // Add delegate for status message updates
+        public Action<string> StatusMessage { get; set; }
+
+        public async Task GetComplianceIssuesAsync(string deviceId, List<string> complianceIssues, CancellationToken cancellationToken = default)
         {
             System.Diagnostics.Debug.WriteLine($"Starting GetComplianceIssuesAsync for device ID {deviceId}: {DateTime.Now}");
 
             try
             {
                 System.Diagnostics.Debug.WriteLine("Calling _graphClient.DeviceManagement.ManagedDevices[deviceId].DeviceCompliancePolicyStates.GetAsync()");
-                var policyStates = await _graphClient.DeviceManagement.ManagedDevices[deviceId].DeviceCompliancePolicyStates
-                    .GetAsync(cancellationToken: cancellationToken);
+
+                var policyStates = await ExecuteWithRateLimitingAsync(async () =>
+                {
+                    return await _graphClient.DeviceManagement.ManagedDevices[deviceId].DeviceCompliancePolicyStates
+                        .GetAsync(cancellationToken: cancellationToken);
+                });
 
                 System.Diagnostics.Debug.WriteLine($"Received response from DeviceCompliancePolicyStates.GetAsync: {policyStates?.Value?.Count ?? 0} policies");
 
@@ -190,61 +337,5 @@ namespace IntuneComplianceMonitor.Services
 
             return operatingSystem;
         }
-    }
-
-    // Custom token provider implementation for Microsoft Graph
-    public class TokenProvider : IAccessTokenProvider
-    {
-        private readonly IPublicClientApplication _msalClient;
-        private readonly string[] _scopes;
-
-        public TokenProvider(IPublicClientApplication msalClient, string[] scopes)
-        {
-            _msalClient = msalClient;
-            _scopes = scopes;
-            AllowedHostsValidator = new AllowedHostsValidator();
-        }
-
-        public async Task<string> GetAuthorizationTokenAsync(Uri uri, Dictionary<string, object> additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
-        {
-            System.Diagnostics.Debug.WriteLine($"Starting GetAuthorizationTokenAsync: {DateTime.Now}");
-
-            try
-            {
-                var accounts = await _msalClient.GetAccountsAsync();
-                System.Diagnostics.Debug.WriteLine($"Found {accounts.Count()} accounts");
-
-                AuthenticationResult result;
-
-                try
-                {
-                    // Try to acquire token silently first
-                    System.Diagnostics.Debug.WriteLine("Attempting to acquire token silently");
-                    result = await _msalClient
-                        .AcquireTokenSilent(_scopes, accounts.FirstOrDefault())
-                        .ExecuteAsync(cancellationToken);
-                    System.Diagnostics.Debug.WriteLine("Successfully acquired token silently");
-                }
-                catch (MsalUiRequiredException)
-                {
-                    System.Diagnostics.Debug.WriteLine("Silent token acquisition failed, trying interactive");
-                    // If silent acquisition fails, acquire token interactively
-                    result = await _msalClient
-                        .AcquireTokenInteractive(_scopes)
-                        .ExecuteAsync(cancellationToken);
-                    System.Diagnostics.Debug.WriteLine("Successfully acquired token interactively");
-                }
-
-                System.Diagnostics.Debug.WriteLine($"Completed GetAuthorizationTokenAsync: {DateTime.Now}");
-                return result.AccessToken;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in GetAuthorizationTokenAsync: {ex.Message}");
-                throw;
-            }
-        }
-
-        public AllowedHostsValidator AllowedHostsValidator { get; }
     }
 }

@@ -1,5 +1,4 @@
-﻿using IntuneComplianceMonitor.Services;
-using System;
+﻿using System;
 using System.Windows;
 
 namespace IntuneComplianceMonitor.Services
@@ -11,6 +10,7 @@ namespace IntuneComplianceMonitor.Services
 
         public IntuneService IntuneService { get; private set; }
         public SampleDataService SampleDataService { get; private set; }
+        public DataCacheService DataCacheService { get; private set; }
         public bool UseRealData { get; private set; }
 
         private ServiceManager()
@@ -32,6 +32,9 @@ namespace IntuneComplianceMonitor.Services
 
             // Always create the sample data service as a fallback
             SampleDataService = new SampleDataService();
+
+            // Create the data cache service
+            DataCacheService = new DataCacheService();
         }
 
         public static ServiceManager Instance

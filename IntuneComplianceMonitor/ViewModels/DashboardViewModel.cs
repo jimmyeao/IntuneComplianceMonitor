@@ -8,6 +8,13 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using OxyPlot;
+using OxyPlot.Series;
+using OxyPlot.Legends;
+
+
+
+
 
 namespace IntuneComplianceMonitor.ViewModels
 {
@@ -36,6 +43,10 @@ namespace IntuneComplianceMonitor.ViewModels
         private bool _filterByNotCheckedIn;
         private string _statusMessage;
         private List<DeviceViewModel> _allDevicesCache;
+        private Dictionary<string, int> _cachedDeviceTypeCounts;
+        private Dictionary<string, int> _cachedOwnershipCounts;
+        private int? _cachedTotalDeviceCount;
+
         #endregion Fields
 
         #region Constructors
@@ -74,6 +85,8 @@ namespace IntuneComplianceMonitor.ViewModels
         #endregion Events
 
         #region Properties
+        public PlotModel DeviceTypePlotModel { get; private set; }
+        public PlotModel OwnershipPlotModel { get; private set; }
 
         public ICommand ApplyFiltersCommand { get; }
         public string StatusMessage
@@ -325,72 +338,409 @@ namespace IntuneComplianceMonitor.ViewModels
 
         #region Methods
 
-        public async void LoadData()
+        public async void LoadData(bool forceRefresh = false)
         {
             IsLoading = true;
             StatusMessage = "Loading data...";
 
             try
             {
+                // Always load quick stats first to ensure we have device count numbers
+                await LoadQuickStatsAsync();
+
+                // Check if already cached and not forced to refresh
+                if (!forceRefresh && _allDevicesCache != null && _allDevicesCache.Any())
+                {
+                    StatusMessage = "Using previously loaded device data";
+                    ApplyDeviceData(_allDevicesCache);
+                    return;
+                }
+
+                // If we get here, we need to load fresh data
                 if (ServiceManager.Instance.UseRealData)
                 {
                     StatusMessage = "Fetching non-compliant devices from Intune...";
                     var (devices, deviceTypeCounts) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
+
                     _allDevicesCache = devices;
-                    DevicesByType = deviceTypeCounts;
-                    StatusMessage = "Non-compliant data retrieved from Intune";
+                    StatusMessage = "Data retrieved from Intune";
                 }
                 else
                 {
                     StatusMessage = "Loading sample data...";
                     _allDevicesCache = await ServiceManager.Instance.SampleDataService.GetDevicesAsync();
-                    // Still calculate types for sample data
-                    DevicesByType = _allDevicesCache
-                        .GroupBy(d => d.DeviceType)
-                        .ToDictionary(g => g.Key, g => g.Count());
                     StatusMessage = "Sample data loaded";
                 }
 
-                StatusMessage = "Processing device data...";
-
-                // Since we're only loading non-compliant devices, these two are the same
-                NonCompliantDevices = _allDevicesCache.Count;
-                NonCompliantDevicesList = new ObservableCollection<DeviceViewModel>(_allDevicesCache);
-
-                var cutoffDate = DateTime.Now.AddDays(-DaysNotCheckedIn);
-                DevicesNotCheckedInRecently = _allDevicesCache.Count(d => d.LastCheckIn < cutoffDate);
-
-                // Ownership count (still useful)
-                DevicesByOwnership = _allDevicesCache
-                    .GroupBy(d => d.Ownership)
-                    .ToDictionary(g => g.Key, g => g.Count());
-
-                StatusMessage = "Processing compliance data...";
-                ComplianceIssuesByType = _allDevicesCache
-                    .SelectMany(d => d.ComplianceIssues)
-                    .GroupBy(i => i)
-                    .OrderByDescending(g => g.Count())
-                    .ToDictionary(g => g.Key, g => g.Count());
-
-                // Update filter lists
-                DeviceTypes = new ObservableCollection<string>(_allDevicesCache.Select(d => d.DeviceType).Distinct());
-                OwnershipTypes = new ObservableCollection<string>(_allDevicesCache.Select(d => d.Ownership).Distinct());
-
-                // Apply any existing filters
-                StatusMessage = "Applying filters...";
-                ApplyFilters();
-                StatusMessage = "Ready";
+                ApplyDeviceData(_allDevicesCache);
             }
             catch (Exception ex)
             {
                 StatusMessage = $"Error: {ex.Message}";
                 MessageBox.Show($"Error loading data: {ex.Message}", "Data Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                System.Diagnostics.Debug.WriteLine($"Error loading data: {ex.Message}");
             }
             finally
             {
                 IsLoading = false;
+                StartComplianceReasonFetch(_allDevicesCache);
             }
+        }
+
+        public async Task LoadQuickStatsAsync()
+        {
+            try
+            {
+                StatusMessage = "Fetching quick stats...";
+
+                // Get the device counts
+                var totalCountTask = ServiceManager.Instance.IntuneService.GetTotalDeviceCountAsync();
+                var typeCountsTask = ServiceManager.Instance.IntuneService.GetDeviceCountsByTypeAsync();
+                var ownershipCountsTask = ServiceManager.Instance.IntuneService.GetDeviceCountsByOwnershipAsync();
+
+                await Task.WhenAll(totalCountTask, typeCountsTask, ownershipCountsTask);
+
+                TotalDevices = totalCountTask.Result; // This is critical - make sure it's actually assigning the value
+                DevicesByType = typeCountsTask.Result;
+                DevicesByOwnership = ownershipCountsTask.Result;
+
+                // Now create the charts using OxyPlot
+                CreateCharts();
+
+                StatusMessage = "Quick stats loaded";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error loading quick stats: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Error loading quick stats: {ex.Message}");
+            }
+        }
+
+        // Separate method for chart creation
+        private void CreateCharts()
+        {
+            // Device Type Donut Chart
+            DeviceTypePlotModel = new PlotModel
+            {
+                Title = string.Empty,
+                PlotAreaBorderThickness = new OxyThickness(0),
+                Background = OxyColors.Transparent
+            };
+
+            var typePieSeries = new PieSeries
+            {
+                InnerDiameter = 0.55,
+                StrokeThickness = 1.5,
+                OutsideLabelFormat = "{1}: {0}",
+                InsideLabelFormat = null,
+                TickHorizontalLength = 12,
+                TickRadialLength = 8,
+                AngleSpan = 360,
+                StartAngle = 90,
+                TextColor = OxyColors.Black,
+                FontSize = 14,
+                ExplodedDistance = 0
+            };
+
+            // Define custom colors for device types
+            var deviceTypeColors = new Dictionary<string, OxyColor>
+    {
+        { "windows", OxyColor.Parse("#1E90FF") },  // DodgerBlue
+        { "macos", OxyColor.Parse("#00C851") },    // Green
+        { "ios", OxyColor.Parse("#FF4500") },      // OrangeRed
+        { "android", OxyColor.Parse("#4CAF50") }   // Material Green
+    };
+
+            // Add slices for each device type
+            foreach (var kvp in DevicesByType)
+            {
+                var slice = new PieSlice(kvp.Key, kvp.Value);
+
+                // Set custom colors based on device type
+                if (deviceTypeColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                {
+                    slice.Fill = color;
+                }
+
+                typePieSeries.Slices.Add(slice);
+            }
+
+            DeviceTypePlotModel.Series.Clear();
+            DeviceTypePlotModel.Series.Add(typePieSeries);
+
+            // Add legend for device type chart
+            DeviceTypePlotModel.Legends.Add(new Legend
+            {
+                LegendPosition = LegendPosition.RightTop,
+                LegendPlacement = LegendPlacement.Inside,
+                LegendMargin = 10,
+                LegendPadding = 8,
+                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
+                LegendBorder = OxyColors.Gray,
+                LegendBorderThickness = 1,
+                LegendTextColor = OxyColors.Black
+            });
+
+            OnPropertyChanged(nameof(DeviceTypePlotModel));
+
+            // Ownership Donut Chart with similar improvements
+            OwnershipPlotModel = new PlotModel
+            {
+                Title = string.Empty,
+                PlotAreaBorderThickness = new OxyThickness(0),
+                Background = OxyColors.Transparent
+            };
+
+            var ownershipPieSeries = new PieSeries
+            {
+                InnerDiameter = 0.55,
+                StrokeThickness = 1.5,
+                OutsideLabelFormat = "{1}: {0}",
+                InsideLabelFormat = null,
+                TickHorizontalLength = 12,
+                TickRadialLength = 8,
+                AngleSpan = 360,
+                StartAngle = 90,
+                TextColor = OxyColors.Black,
+                FontSize = 14,
+                ExplodedDistance = 0
+            };
+
+            // Define custom colors for ownership types
+            var ownershipColors = new Dictionary<string, OxyColor>
+    {
+        { "company", OxyColor.Parse("#4CAF50") },  // Material Green
+        { "personal", OxyColor.Parse("#FFA726") }  // Material Orange
+    };
+
+            foreach (var kvp in DevicesByOwnership)
+            {
+                var slice = new PieSlice(kvp.Key, kvp.Value);
+                if (ownershipColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                {
+                    slice.Fill = color;
+                }
+                ownershipPieSeries.Slices.Add(slice);
+            }
+
+            OwnershipPlotModel.Series.Clear();
+            OwnershipPlotModel.Series.Add(ownershipPieSeries);
+
+            // Add legend for ownership chart
+            OwnershipPlotModel.Legends.Add(new Legend
+            {
+                LegendPosition = LegendPosition.RightTop,
+                LegendPlacement = LegendPlacement.Inside,
+                LegendMargin = 10,
+                LegendPadding = 8,
+                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
+                LegendBorder = OxyColors.Gray,
+                LegendBorderThickness = 1,
+                LegendTextColor = OxyColors.Black
+            });
+
+            OnPropertyChanged(nameof(OwnershipPlotModel));
+        }
+
+
+        private void UpdateCharts()
+        {
+            // Device Type Donut Chart
+            DeviceTypePlotModel = new PlotModel
+            {
+                Title = string.Empty,
+                PlotAreaBorderThickness = new OxyThickness(0),
+                Background = OxyColors.Transparent
+            };
+
+            var typePieSeries = new PieSeries
+            {
+                InnerDiameter = 0.55,             // Slightly larger hole
+                StrokeThickness = 1.5,
+                OutsideLabelFormat = "{1}: {0}",
+                InsideLabelFormat = null,         // No inside labels
+                TickHorizontalLength = 12,
+                TickRadialLength = 8,
+                AngleSpan = 360,
+                StartAngle = 90,
+                TextColor = OxyColors.Black,
+                FontSize = 14,
+                ExplodedDistance = 0             // No explosion effect
+            };
+
+            // Define custom colors for device types with better contrast
+            var deviceTypeColors = new Dictionary<string, OxyColor>
+    {
+        { "windows", OxyColor.Parse("#1E90FF") },  // DodgerBlue
+        { "macos", OxyColor.Parse("#00C851") },    // Green
+        { "ios", OxyColor.Parse("#FF4500") },      // OrangeRed
+        { "android", OxyColor.Parse("#4CAF50") }   // Material Green
+    };
+
+            // Add slices for each device type
+            foreach (var kvp in _cachedDeviceTypeCounts)
+            {
+                var slice = new PieSlice(kvp.Key, kvp.Value);
+
+                // Set custom colors based on device type
+                if (deviceTypeColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                {
+                    slice.Fill = color;
+                }
+
+                typePieSeries.Slices.Add(slice);
+            }
+
+            DeviceTypePlotModel.Series.Clear();
+            DeviceTypePlotModel.Series.Add(typePieSeries);
+
+            // Add legend items manually for better control
+            DeviceTypePlotModel.Legends.Add(new Legend
+            {
+                LegendPosition = LegendPosition.RightTop,
+                LegendPlacement = LegendPlacement.Inside,
+                LegendMargin = 10,
+                LegendPadding = 8,
+                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
+                LegendBorder = OxyColors.Gray,
+                LegendBorderThickness = 1,
+                LegendTextColor = OxyColors.Black
+            });
+
+            // Update the model
+            OnPropertyChanged(nameof(DeviceTypePlotModel));
+
+            // Ownership Donut Chart with similar improvements
+            OwnershipPlotModel = new PlotModel
+            {
+                Title = string.Empty,
+                PlotAreaBorderThickness = new OxyThickness(0),
+                Background = OxyColors.Transparent
+            };
+
+            var ownershipPieSeries = new PieSeries
+            {
+                InnerDiameter = 0.55,
+                StrokeThickness = 1.5,
+                OutsideLabelFormat = "{1}: {0}",
+                InsideLabelFormat = null,
+                TickHorizontalLength = 12,
+                TickRadialLength = 8,
+                AngleSpan = 360,
+                StartAngle = 90,
+                TextColor = OxyColors.Black,
+                FontSize = 14,
+                ExplodedDistance = 0
+            };
+
+            // Define custom colors for ownership types with better contrast
+            var ownershipColors = new Dictionary<string, OxyColor>
+    {
+        { "company", OxyColor.Parse("#4CAF50") },  // Material Green
+        { "personal", OxyColor.Parse("#FFA726") }  // Material Orange
+    };
+
+            foreach (var kvp in _cachedOwnershipCounts)
+            {
+                var slice = new PieSlice(kvp.Key, kvp.Value);
+                if (ownershipColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                {
+                    slice.Fill = color;
+                }
+                ownershipPieSeries.Slices.Add(slice);
+            }
+
+            OwnershipPlotModel.Series.Clear();
+            OwnershipPlotModel.Series.Add(ownershipPieSeries);
+
+            // Add legend for ownership chart
+            OwnershipPlotModel.Legends.Add(new Legend
+            {
+                LegendPosition = LegendPosition.RightTop,
+                LegendPlacement = LegendPlacement.Inside,
+                LegendMargin = 10,
+                LegendPadding = 8,
+                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
+                LegendBorder = OxyColors.Gray,
+                LegendBorderThickness = 1,
+                LegendTextColor = OxyColors.Black
+            });
+
+            OnPropertyChanged(nameof(OwnershipPlotModel));
+        }
+
+        // Update ClearCache method to also clear disk cache
+        public void ClearCache()
+        {
+            _allDevicesCache = null;
+            ServiceManager.Instance.DataCacheService.ClearCache();
+        }
+        private void ApplyDeviceData(List<DeviceViewModel> devices)
+        {
+            _allDevicesCache = devices;
+
+            NonCompliantDevices = devices.Count;
+            NonCompliantDevicesList = new ObservableCollection<DeviceViewModel>(devices);
+
+            var cutoffDate = DateTime.Now.AddDays(-DaysNotCheckedIn);
+            DevicesNotCheckedInRecently = devices.Count(d => d.LastCheckIn < cutoffDate);
+
+            if (_cachedOwnershipCounts != null)
+            {
+                DevicesByOwnership = new Dictionary<string, int>(_cachedOwnershipCounts);
+            }
+
+
+            ComplianceIssuesByType = devices
+                .SelectMany(d => d.ComplianceIssues)
+                .GroupBy(i => i)
+                .OrderByDescending(g => g.Count())
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            DeviceTypes = new ObservableCollection<string>(devices.Select(d => d.DeviceType).Distinct());
+            OwnershipTypes = new ObservableCollection<string>(devices.Select(d => d.Ownership).Distinct());
+
+            ApplyFilters();
+            StatusMessage = $"Loaded {devices.Count} devices";
+        }
+
+        private void StartComplianceReasonFetch(List<DeviceViewModel> devices)
+        {
+            Task.Run(async () =>
+            {
+                var semaphore = new SemaphoreSlim(5); // limit concurrency
+
+                var tasks = devices.Select(async device =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        var tempList = new List<string>();
+                        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                        await ServiceManager.Instance.IntuneService.GetComplianceIssuesAsync(device.DeviceId, tempList, timeout.Token);
+
+                        // Replace the placeholder with real data (on UI thread)
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            device.ComplianceIssues = tempList.Any()
+                                ? tempList
+                                : new List<string> { "No specific policy issues reported" };
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            device.ComplianceIssues = new List<string> { $"Error: {ex.Message}" };
+                        });
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                });
+
+                await Task.WhenAll(tasks);
+            });
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
