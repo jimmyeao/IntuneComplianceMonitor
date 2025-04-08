@@ -9,6 +9,26 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <Style x:Key="NonCompliantRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="#FFEBEB"/>
+            <Setter Property="Foreground" Value="#B00020"/>
+        </Style>
+
+        <Style x:Key="CompliantRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="#D0FFEF"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+
+        <Style x:Key="ErrorRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="#FFEBEB"/>
+            <Setter Property="Foreground" Value="#B00020"/>
+        </Style>
+
+        <Style x:Key="NotApplicableRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="#F5F5F5"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+      
     </Window.Resources>
 
     <Grid Margin="20">
@@ -30,6 +50,7 @@
             <!-- Compliance Tab -->
             <TabItem Header="Compliance">
                 <DataGrid ItemsSource="{Binding PolicyStates}" 
+                          x:Name="ComplianceDataGrid"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
                           GridLinesVisibility="Horizontal"
@@ -46,22 +67,38 @@
                         </Style>
                         <Style TargetType="DataGridRow">
                             <Style.Triggers>
+                                <!-- Row is selected -->
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}" />
+                                </Trigger>
+
+                                <!-- Not Compliant -->
                                 <DataTrigger Binding="{Binding State}" Value="NonCompliant">
-                                    <Setter Property="Background" Value="#FDECEA"/>
+                                    <Setter Property="Background" Value="#FFEBEB"/>
                                     <Setter Property="Foreground" Value="#B00020"/>
                                 </DataTrigger>
+
+                                <!-- Compliant -->
                                 <DataTrigger Binding="{Binding State}" Value="Compliant">
-                                    <Setter Property="Background" Value="#E9F7EF"/>
+                                    <Setter Property="Background" Value="#D0FFEF"/>
+                                    <Setter Property="Foreground" Value="Black"/>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding State}" Value="Not applicable">
+
+                                <!-- Not Applicable -->
+                                <DataTrigger Binding="{Binding State}" Value="NotApplicable">
                                     <Setter Property="Background" Value="#F5F5F5"/>
+                                    <Setter Property="Foreground" Value="Black"/>
                                 </DataTrigger>
+
+                                <!-- Error -->
                                 <DataTrigger Binding="{Binding State}" Value="Error">
                                     <Setter Property="Background" Value="#FFEBEB"/>
                                     <Setter Property="Foreground" Value="#B00020"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
+
                     </DataGrid.Resources>
 
                     <DataGrid.Columns>

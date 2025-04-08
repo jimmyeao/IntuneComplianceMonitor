@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,7 +29,7 @@ namespace IntuneComplianceMonitor.Views
         public bool IsLoadingProfiles { get; set; }
         public DeviceViewModel Device => _device;
 
-
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public DeviceDetailsWindow(DeviceViewModel device)
         {
@@ -41,33 +43,48 @@ namespace IntuneComplianceMonitor.Views
             {
                 await LoadComplianceDetailsAsync();
                 await LoadConfigurationProfilesAsync();
+                ComplianceDataGrid.Items.Refresh();
+
             };
         }
 
         private async Task LoadConfigurationProfilesAsync()
         {
             IsLoadingProfiles = true;
+
             try
             {
+                System.Diagnostics.Debug.WriteLine($"Starting to load configuration profiles for device {_device.DeviceId}");
+
                 var profiles = await ServiceManager.Instance.IntuneService
-      .GetAppliedConfigurationProfilesAsync(_device.DeviceId);
+                    .GetAppliedConfigurationProfilesAsync(_device.DeviceId);
+
+                System.Diagnostics.Debug.WriteLine($"Received {profiles.Count} profiles");
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     ConfigurationProfiles.Clear();
                     foreach (var profile in profiles)
+                    {
                         ConfigurationProfiles.Add(profile);
+                        System.Diagnostics.Debug.WriteLine($"Added profile: {profile.DisplayName}");
+                    }
+
+                    // Make sure the DataGrid or ListView is refreshed
+                    // If you have a DataGrid or ListView for displaying profiles, add code to refresh it
                 });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading configuration profiles: {ex.Message}");
+                MessageBox.Show($"Error loading configuration profiles: {ex.Message}",
+                    "Profile Loading Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             finally
             {
                 IsLoadingProfiles = false;
             }
-
-            // Notify binding (you can use INotifyPropertyChanged if needed)
-            Dispatcher.Invoke(() => BindingOperations.GetBindingExpressionBase(this, DataContextProperty)?.UpdateTarget());
         }
-
         private async Task LoadComplianceDetailsAsync()
         {
             var list = await ServiceManager.Instance.IntuneService.GetDeviceComplianceStateWithMetadataAsync(_device.DeviceId);
@@ -83,9 +100,13 @@ namespace IntuneComplianceMonitor.Views
             });
         }
 
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
 
 
-     
+
     }
 
 }
