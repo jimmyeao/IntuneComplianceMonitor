@@ -352,25 +352,39 @@ namespace IntuneComplianceMonitor.ViewModels
 
             try
             {
-                // Always load quick stats first to ensure we have device count numbers
                 await LoadQuickStatsAsync();
 
-                // Check if already cached and not forced to refresh
                 if (!forceRefresh && _allDevicesCache != null && _allDevicesCache.Any())
                 {
-                    StatusMessage = "Using previously loaded device data";
+                    StatusMessage = "Using cached memory data";
                     ApplyDeviceData(_allDevicesCache);
                     return;
                 }
 
-                // If we get here, we need to load fresh data
+                // ✅ Try disk cache first
+                if (!forceRefresh)
+                {
+                    var cachedDevices = await ServiceManager.Instance.DataCacheService.GetDevicesFromCacheAsync();
+                    if (cachedDevices != null && cachedDevices.Any())
+                    {
+                        _allDevicesCache = cachedDevices;
+                        StatusMessage = "Loaded from disk cache";
+                        ApplyDeviceData(_allDevicesCache);
+                        return;
+                    }
+                }
+
+                // 🟢 If we get here, we need to fetch fresh from Intune or Sample
                 if (ServiceManager.Instance.UseRealData)
                 {
-                    StatusMessage = "Fetching non-compliant devices from Intune...";
+                    StatusMessage = "Fetching from Intune...";
                     var (devices, deviceTypeCounts) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
-
                     _allDevicesCache = devices;
-                    StatusMessage = "Data retrieved from Intune";
+
+                    // Save to cache
+                    await ServiceManager.Instance.DataCacheService.SaveDevicesToCacheAsync(devices);
+
+                    StatusMessage = "Data loaded from Intune";
                 }
                 else
                 {
@@ -392,6 +406,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 StartComplianceReasonFetch(_allDevicesCache);
             }
         }
+
 
         public async Task LoadQuickStatsAsync()
         {
@@ -703,39 +718,44 @@ namespace IntuneComplianceMonitor.ViewModels
             {
                 var semaphore = new SemaphoreSlim(5); // limit concurrency
 
-                var tasks = devices.Select(async device =>
-                {
-                    await semaphore.WaitAsync();
-                    try
+                var tasks = devices
+                    .Where(d => d.ComplianceIssues.Count == 1 && d.ComplianceIssues[0] == "Loading...") // ✅ Only if not fetched
+                    .Select(async device =>
                     {
-                        var tempList = new List<string>();
-                        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                        await ServiceManager.Instance.IntuneService.GetComplianceIssuesAsync(device.DeviceId, tempList, timeout.Token);
+                        await semaphore.WaitAsync();
+                        try
+                        {
+                            var tempList = new List<string>();
+                            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                            await ServiceManager.Instance.IntuneService.GetComplianceIssuesAsync(device.DeviceId, tempList, timeout.Token);
 
-                        // Replace the placeholder with real data (on UI thread)
-                        Application.Current.Dispatcher.Invoke(() =>
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                device.ComplianceIssues = tempList.Any()
+                            ? tempList
+                            : new List<string> { "No specific policy issues reported" };
+                            });
+                        }
+                        catch (Exception ex)
                         {
-                            device.ComplianceIssues = tempList.Any()
-                                ? tempList
-                                : new List<string> { "No specific policy issues reported" };
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                device.ComplianceIssues = new List<string> { $"Error: {ex.Message}" };
+                            });
+                        }
+                        finally
                         {
-                            device.ComplianceIssues = new List<string> { $"Error: {ex.Message}" };
-                        });
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                });
+                            semaphore.Release();
+                        }
+                    });
 
                 await Task.WhenAll(tasks);
+
+                // ✅ Save updated cache with compliance issues
+                await ServiceManager.Instance.DataCacheService.SaveDevicesToCacheAsync(devices);
             });
         }
+
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
