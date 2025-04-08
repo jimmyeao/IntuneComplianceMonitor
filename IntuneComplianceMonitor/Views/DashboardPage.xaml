@@ -7,7 +7,6 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -79,6 +78,8 @@
                 </Grid>
             </Border>
         </Grid>
+
+        <!-- Charts section -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -90,7 +91,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="300"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" 
@@ -110,7 +111,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="300"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" 
@@ -125,55 +126,5 @@
                 </Grid>
             </Border>
         </Grid>
-
-        <!-- Non-Compliant Devices Table -->
-        <Border Grid.Row="2" Style="{StaticResource CardPanel}" Margin="5,5,5,5">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" 
-                           Text="Non-Compliant Devices" 
-                           Style="{StaticResource SectionTitle}"/>
-
-                <DataGrid Grid.Row="1" 
-                          ItemsSource="{Binding NonCompliantDevicesList}" 
-                          AutoGenerateColumns="False" 
-                          IsReadOnly="True"
-                          GridLinesVisibility="Horizontal"
-                          BorderThickness="1"
-                          BorderBrush="#DDDDDD"
-                          RowHeaderWidth="0"
-                          HeadersVisibility="Column"
-                          CanUserSortColumns="True"
-                          Background="Transparent"
-                          AlternatingRowBackground="#F9F9F9"
-                          ScrollViewer.VerticalScrollBarVisibility="Auto">
-                    <DataGrid.Resources>
-                        <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background" Value="#F0F0F0"/>
-                            <Setter Property="Padding" Value="10,8"/>
-                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                            <Setter Property="BorderBrush" Value="#DDDDDD"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                        </Style>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Padding" Value="10,5"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                        </Style>
-                    </DataGrid.Resources>
-
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200"/>
-                        <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="240"/>
-                        <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="140"/>
-                        <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="100"/>
-                        <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="*"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Grid>
-        </Border>
     </Grid>
 </Page>

@@ -75,6 +75,15 @@ namespace IntuneComplianceMonitor
                         break;
                     case "Devices":
                         page = new DevicesPage();
+                        // Make sure we're showing all devices
+                        if (page.DataContext is DashboardViewModel deviceViewModel)
+                        {
+                            deviceViewModel.ShowOnlyNonCompliant = false;
+                            deviceViewModel.FilterByNotCheckedIn = false;
+                            deviceViewModel.SearchText = "";
+                            deviceViewModel.SelectedDeviceType = "";
+                            deviceViewModel.SelectedOwnership = "";
+                        }
                         break;
                     case "NonCompliant":
                         // Create DevicesPage with non-compliant filter
@@ -82,7 +91,12 @@ namespace IntuneComplianceMonitor
                         // Check if the DataContext is already set and is a DashboardViewModel
                         if (page.DataContext is DashboardViewModel nonCompliantViewModel)
                         {
-                            // Set a flag to indicate we want only non-compliant devices
+                            // Clear other filters first
+                            nonCompliantViewModel.SearchText = "";
+                            nonCompliantViewModel.SelectedDeviceType = "";
+                            nonCompliantViewModel.SelectedOwnership = "";
+                            nonCompliantViewModel.FilterByNotCheckedIn = false;
+                            // Then set non-compliant filter
                             nonCompliantViewModel.ShowOnlyNonCompliant = true;
                         }
                         break;
@@ -92,6 +106,11 @@ namespace IntuneComplianceMonitor
                         // Check if the DataContext is already set and is a DashboardViewModel
                         if (page.DataContext is DashboardViewModel notCheckedInViewModel)
                         {
+                            // Clear other filters first
+                            notCheckedInViewModel.SearchText = "";
+                            notCheckedInViewModel.SelectedDeviceType = "";
+                            notCheckedInViewModel.SelectedOwnership = "";
+                            notCheckedInViewModel.ShowOnlyNonCompliant = false;
                             // Set days not checked in from settings
                             var settings = ServiceManager.Instance.SettingsService.CurrentSettings;
                             notCheckedInViewModel.DaysNotCheckedIn = settings.DaysNotCheckedIn;
@@ -113,7 +132,7 @@ namespace IntuneComplianceMonitor
                 // If reusing the same page, just refresh its data if it's a DashboardViewModel
                 if (forceRefresh && page.DataContext is DashboardViewModel viewModel)
                 {
-                    viewModel.LoadData(forceRefresh: false);
+                    viewModel.LoadData(forceRefresh: true);
                 }
 
                 // Navigate to the page
@@ -123,7 +142,6 @@ namespace IntuneComplianceMonitor
                 }
             }
         }
-
         private void SyncButton_Click(object sender, RoutedEventArgs e)
         {
             var loadingWindow = new SyncProgressWindow();

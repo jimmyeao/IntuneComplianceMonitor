@@ -2,38 +2,31 @@
 using Microsoft.Graph.Models;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Identity.Client;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+
+using System.Windows;
 using IntuneComplianceMonitor.ViewModels;
 using IntuneComplianceMonitor.Services;
 using System.Windows;
 using Microsoft.Kiota.Abstractions;
+using Microsoft.Identity.Client.Desktop;
 
 namespace IntuneComplianceMonitor.Services
 {
     public class IntuneService
     {
         #region Fields
-
         private readonly string _clientId;
         private readonly TimeSpan _delayBetweenRequests = TimeSpan.FromMilliseconds(200);
         private readonly GraphServiceClient _graphClient;
         private readonly int _maxConcurrentRequests = 5;
-
         // Rate limiting settings
         private readonly SemaphoreSlim _requestThrottler;
-
         private readonly string[] _scopes = new[] {
         "DeviceManagementManagedDevices.Read.All",
         "DeviceManagementConfiguration.Read.All"
     };
         private readonly SettingsService _settingsService;
         private readonly string _tenantId;
-
         #endregion Fields
 
         #region Constructors
@@ -54,11 +47,14 @@ namespace IntuneComplianceMonitor.Services
 
             try
             {
-                // Initialize MSAL authentication
-                var app = PublicClientApplicationBuilder
+                // Initialize MSAL authentication with Desktop extension
+                var builder = PublicClientApplicationBuilder
                     .Create(_clientId)
                     .WithAuthority(AzureCloudInstance.AzurePublic, _tenantId)
-                    .WithDefaultRedirectUri()
+                    .WithDefaultRedirectUri();
+
+                // Add Windows embedded browser support
+                var app = builder.WithWindowsEmbeddedBrowserSupport()
                     .Build();
 
                 // Create a token provider

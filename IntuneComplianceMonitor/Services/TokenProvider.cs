@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Interop;
+using Microsoft.Identity.Client.Desktop;
 
 namespace IntuneComplianceMonitor.Services
 {
@@ -23,6 +26,8 @@ namespace IntuneComplianceMonitor.Services
             _scopes = scopes;
             AllowedHostsValidator = new AllowedHostsValidator();
         }
+
+        // In TokenProvider.cs, modify the GetAuthorizationTokenAsync method
 
         public async Task<string> GetAuthorizationTokenAsync(Uri uri, Dictionary<string, object> additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
         {
@@ -72,8 +77,16 @@ namespace IntuneComplianceMonitor.Services
                     {
                         System.Diagnostics.Debug.WriteLine("Silent token acquisition failed, trying interactive");
                         // If silent acquisition fails, acquire token interactively
+                        // MODIFY THIS PART to use a popup instead of browser:
+                        // can we restrict the wirndo size?
+                        // Use the embedded web view for interactive authentication
+                        // This is where we set the parent window for the embedded web view
+                        // and ensure it is not a full screen browser
+                        
                         result = await _msalClient
                             .AcquireTokenInteractive(_scopes)
+                            .WithUseEmbeddedWebView(true) // Use embedded web view
+                            .WithParentActivityOrWindow(new WindowInteropHelper(Application.Current.MainWindow).Handle) // Set parent window
                             .ExecuteAsync(cancellationToken);
                         System.Diagnostics.Debug.WriteLine("Successfully acquired token interactively");
                         break; // Success, exit the retry loop
@@ -123,7 +136,6 @@ namespace IntuneComplianceMonitor.Services
                 _tokenSemaphore.Release();
             }
         }
-
         public AllowedHostsValidator AllowedHostsValidator { get; }
     }
 }

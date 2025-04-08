@@ -679,6 +679,7 @@ namespace IntuneComplianceMonitor.ViewModels
             _allDevicesCache = null;
             ServiceManager.Instance.DataCacheService.ClearCache();
         }
+        // In DashboardViewModel.cs, modify the ApplyDeviceData method
         private void ApplyDeviceData(List<DeviceViewModel> devices)
         {
             _allDevicesCache = devices;
@@ -695,7 +696,6 @@ namespace IntuneComplianceMonitor.ViewModels
                 DevicesByOwnership = new Dictionary<string, int>(_cachedOwnershipCounts);
             }
 
-
             ComplianceIssuesByType = devices
                 .SelectMany(d => d.ComplianceIssues)
                 .GroupBy(i => i)
@@ -710,8 +710,12 @@ namespace IntuneComplianceMonitor.ViewModels
             System.Diagnostics.Debug.WriteLine($"Total devices: {TotalDevices}");
             System.Diagnostics.Debug.WriteLine($"Non-compliant devices: {NonCompliantDevices}");
             System.Diagnostics.Debug.WriteLine($"Not checked in recently: {DevicesNotCheckedInRecently}");
+
+            // REMOVE this call since we don't need lazy loading anymore
+            // StartComplianceReasonFetch(_allDevicesCache);
         }
 
+        // You can also remove the StartComplianceReasonFetch method entirely if it's not used elsewhere
         private void StartComplianceReasonFetch(List<DeviceViewModel> devices)
         {
             Task.Run(async () =>
