@@ -12,7 +12,7 @@ public class TokenProvider : IAccessTokenProvider
     private readonly SemaphoreSlim _tokenSemaphore = new SemaphoreSlim(1, 1);
     private string _cachedToken = null;
     private DateTime _tokenExpiration = DateTime.MinValue;
-    private const string TokenCacheFileName = "token_cache.json";
+    private const string TOKEN_CACHE_FILE = "token_cache.json";
 
     public TokenProvider(IPublicClientApplication msalClient, string[] scopes)
     {
@@ -20,60 +20,60 @@ public class TokenProvider : IAccessTokenProvider
         _scopes = scopes;
         AllowedHostsValidator = new AllowedHostsValidator();
 
-        // Initialize token cache on creation
-        LoadTokenCache();
+        // Load persisted token on initialization
+        LoadPersistedToken();
     }
 
-    private void LoadTokenCache()
+    private void LoadPersistedToken()
     {
         try
         {
             string cacheFilePath = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
-                TokenCacheFileName);
+                TOKEN_CACHE_FILE);
 
             if (File.Exists(cacheFilePath))
             {
-                var cacheData = JsonSerializer.Deserialize<TokenCacheData>(
+                var tokenData = JsonSerializer.Deserialize<TokenCacheData>(
                     File.ReadAllText(cacheFilePath));
 
-                if (cacheData != null && cacheData.Expiration > DateTime.UtcNow)
+                if (tokenData != null && tokenData.Expiration > DateTime.UtcNow)
                 {
-                    _cachedToken = cacheData.Token;
-                    _tokenExpiration = cacheData.Expiration;
-                    System.Diagnostics.Debug.WriteLine("Loaded token from persistent cache");
+                    _cachedToken = tokenData.Token;
+                    _tokenExpiration = tokenData.Expiration;
+                    System.Diagnostics.Debug.WriteLine("Loaded persisted token");
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading token cache: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Error loading persisted token: {ex.Message}");
         }
     }
 
-    private void SaveTokenCache(string token, DateTime expiration)
+    private void PersistToken(string token, DateTime expiration)
     {
         try
         {
             string cacheFilePath = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
-                TokenCacheFileName);
+                TOKEN_CACHE_FILE);
 
-            var cacheData = new TokenCacheData
+            var tokenData = new TokenCacheData
             {
                 Token = token,
                 Expiration = expiration
             };
 
             File.WriteAllText(cacheFilePath,
-                JsonSerializer.Serialize(cacheData,
+                JsonSerializer.Serialize(tokenData,
                     new JsonSerializerOptions { WriteIndented = true }));
 
-            System.Diagnostics.Debug.WriteLine("Saved token to persistent cache");
+            System.Diagnostics.Debug.WriteLine("Persisted token to file");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error saving token cache: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Error persisting token: {ex.Message}");
         }
     }
 
@@ -86,97 +86,50 @@ public class TokenProvider : IAccessTokenProvider
 
         try
         {
-            System.Diagnostics.Debug.WriteLine($"Starting GetAuthorizationTokenAsync: {DateTime.Now}");
-
-            // Check if we have a valid cached token (with some buffer time)
+            // Check for valid cached token
             if (!string.IsNullOrEmpty(_cachedToken) && _tokenExpiration > DateTime.Now.AddMinutes(5))
             {
-                System.Diagnostics.Debug.WriteLine("Using cached token");
+                System.Diagnostics.Debug.WriteLine($"Using cached token, valid until {_tokenExpiration}");
                 return _cachedToken;
             }
 
             var accounts = await _msalClient.GetAccountsAsync();
-            System.Diagnostics.Debug.WriteLine($"Found {accounts.Count()} accounts");
 
             AuthenticationResult result = null;
-            int retryCount = 0;
-            const int maxRetries = 3;
-
-            while (retryCount < maxRetries)
+            try
             {
-                try
+                // Try silent authentication first
+                if (accounts.Any())
                 {
-                    // Try to acquire token silently first
-                    if (accounts.Any())
-                    {
-                        System.Diagnostics.Debug.WriteLine("Attempting to acquire token silently");
-                        result = await _msalClient
-                            .AcquireTokenSilent(_scopes, accounts.FirstOrDefault())
-                            .ExecuteAsync(cancellationToken);
-                        System.Diagnostics.Debug.WriteLine("Successfully acquired token silently");
-                    }
-                    else
-                    {
-                        // If no accounts, we need to authenticate interactively
-                        throw new MsalUiRequiredException("no_accounts", "No accounts found");
-                    }
-
-                    break; // Success, exit the retry loop
-                }
-                catch (MsalUiRequiredException)
-                {
-                    System.Diagnostics.Debug.WriteLine("Silent token acquisition failed, trying interactive");
-
                     result = await _msalClient
-                        .AcquireTokenInteractive(_scopes)
-                        .WithUseEmbeddedWebView(true)
-                        .WithParentActivityOrWindow(new WindowInteropHelper(Application.Current.MainWindow).Handle)
+                        .AcquireTokenSilent(_scopes, accounts.FirstOrDefault())
                         .ExecuteAsync(cancellationToken);
-                    System.Diagnostics.Debug.WriteLine("Successfully acquired token interactively");
-                    break;
                 }
-                catch (Exception ex) when (
-                    ex is MsalServiceException ||
-                    ex is MsalClientException ||
-                    ex is TaskCanceledException)
+                else
                 {
-                    retryCount++;
-                    System.Diagnostics.Debug.WriteLine($"Token acquisition attempt {retryCount} failed: {ex.Message}");
-
-                    if (retryCount >= maxRetries)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Max retries reached, throwing exception");
-                        throw;
-                    }
-
-                    // Exponential backoff
-                    int delayMs = (int)Math.Pow(2, retryCount) * 1000;
-                    await Task.Delay(delayMs, cancellationToken);
+                    throw new MsalUiRequiredException("no_accounts", "No accounts found");
                 }
             }
-
-            if (result != null)
+            catch (MsalUiRequiredException)
             {
-                // Cache the token and set expiration
-                _cachedToken = result.AccessToken;
-                _tokenExpiration = result.ExpiresOn.DateTime;
-
-                // Save to persistent cache
-                SaveTokenCache(_cachedToken, _tokenExpiration);
-
-                System.Diagnostics.Debug.WriteLine($"Token expires on: {_tokenExpiration}");
-
-                System.Diagnostics.Debug.WriteLine($"Completed GetAuthorizationTokenAsync: {DateTime.Now}");
-                return _cachedToken;
+                // Fallback to interactive authentication
+                result = await _msalClient
+                    .AcquireTokenInteractive(_scopes)
+                    .WithUseEmbeddedWebView(true)
+                    .WithParentActivityOrWindow(new WindowInteropHelper(Application.Current.MainWindow).Handle)
+                    .ExecuteAsync(cancellationToken);
             }
-            else
-            {
-                throw new InvalidOperationException("Failed to acquire token after multiple attempts");
-            }
+
+            // Cache and persist the token
+            _cachedToken = result.AccessToken;
+            _tokenExpiration = result.ExpiresOn.DateTime;
+            PersistToken(_cachedToken, _tokenExpiration);
+
+            return _cachedToken;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in GetAuthorizationTokenAsync: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Token acquisition error: {ex.Message}");
             throw;
         }
         finally

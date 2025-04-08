@@ -353,24 +353,13 @@ namespace IntuneComplianceMonitor.ViewModels
             try
             {
                 // Always load quick stats first
-                try
-                {
-                    // Check if quick stats are already loaded and not forcing refresh
-                    if (!forceRefresh && _cachedTotalDeviceCount.HasValue &&
-                        _cachedDeviceTypeCounts != null &&
-                        _cachedOwnershipCounts != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Using cached quick stats, skipping Graph call");
-                        UpdateCharts(); // Use existing cached data
-                    }
-                    else
-                    {
-                        // Load quick stats
-                        await LoadQuickStatsAsync();
-                    }
+                await LoadQuickStatsAsync();
 
-                    // Try disk cache if not forced refresh
-                    if (!forceRefresh)
+                // Clear previous data to ensure fresh load
+                _allDevicesCache = null;
+
+                // Try disk cache if not forcing refresh
+                if (!forceRefresh)
                 {
                     var cachedDevices = await ServiceManager.Instance.DataCacheService.GetDevicesFromCacheAsync();
                     if (cachedDevices != null && cachedDevices.Any())
@@ -413,19 +402,7 @@ namespace IntuneComplianceMonitor.ViewModels
             {
                 IsLoading = false;
             }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"LoadData error: {ex.Message}");
-                StatusMessage = $"Error: {ex.Message}";
-                MessageBox.Show($"Error loading data: {ex.Message}", "Data Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                IsLoading = false;
-            }
         }
-
 
         public async Task LoadQuickStatsAsync()
         {

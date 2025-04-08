@@ -9,6 +9,7 @@ using IntuneComplianceMonitor.Services;
 using System.Windows;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Identity.Client.Desktop;
+using System.Collections.Concurrent;
 
 namespace IntuneComplianceMonitor.Services
 {
@@ -27,6 +28,23 @@ namespace IntuneComplianceMonitor.Services
     };
         private readonly SettingsService _settingsService;
         private readonly string _tenantId;
+        private static ConcurrentDictionary<string, (object Result, DateTime Timestamp)> _methodResultCache
+     = new ConcurrentDictionary<string, (object, DateTime)>();
+        private const int CACHE_DURATION_MINUTES = 60; // 1 hour cache duration
+
+        private bool TryGetCachedResult<T>(string methodName, out T result)
+        {
+            result = default;
+            if (_methodResultCache.TryGetValue(methodName, out var cachedEntry))
+            {
+                if (DateTime.Now - cachedEntry.Timestamp < TimeSpan.FromMinutes(CACHE_DURATION_MINUTES))
+                {
+                    result = (T)cachedEntry.Result;
+                    return true;
+                }
+            }
+            return false;
+        }
         #endregion Fields
 
         #region Constructors
@@ -87,7 +105,10 @@ namespace IntuneComplianceMonitor.Services
         #endregion Properties
 
         #region Methods
-
+        private void CacheMethodResult<T>(string methodName, T result)
+        {
+            _methodResultCache[methodName] = (result, DateTime.Now);
+        }
         public async Task<List<ConfigurationProfileViewModel>> GetAppliedConfigurationProfilesAsync(string deviceId, CancellationToken cancellationToken = default)
         {
             var result = new List<ConfigurationProfileViewModel>();
@@ -404,34 +425,15 @@ namespace IntuneComplianceMonitor.Services
         }
         // New helper method for getting detailed non-compliant settings
 
-        public async Task<Dictionary<string, int>> GetDeviceCountsByOwnershipAsync()
-        {
-            var ownershipTypes = new[] { "company", "personal" };
-            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
-
-            foreach (var type in ownershipTypes)
-            {
-                var response = await ExecuteWithRateLimitingAsync(async () =>
-                {
-                    return await _graphClient.DeviceManagement.ManagedDevices
-                        .GetAsync(req =>
-                        {
-                            req.QueryParameters.Count = true;
-                            req.QueryParameters.Top = 1;
-                            req.QueryParameters.Filter = $"managedDeviceOwnerType eq '{type}' and lastSyncDateTime ge {cutoff}";
-                        });
-                });
-
-                counts[type] = (int)(response?.OdataCount ?? 0);
-            }
-
-            return counts;
-        }
-
         public async Task<Dictionary<string, int>> GetDeviceCountsByTypeAsync()
         {
+            // Try to get cached result
+            if (TryGetCachedResult("DeviceCountsByType", out Dictionary<string, int> cachedCounts))
+            {
+                System.Diagnostics.Debug.WriteLine("Returning cached device counts by type");
+                return cachedCounts;
+            }
+
             var osTypes = new[] { "windows", "macos", "ios", "android" };
             var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -453,9 +455,47 @@ namespace IntuneComplianceMonitor.Services
                 counts[os] = (int)(response?.OdataCount ?? 0);
             }
 
+            // Cache the result
+            CacheMethodResult("DeviceCountsByType", counts);
+
             return counts;
         }
 
+        public async Task<Dictionary<string, int>> GetDeviceCountsByOwnershipAsync()
+        {
+            // Try to get cached result
+            if (TryGetCachedResult("DeviceCountsByOwnership", out Dictionary<string, int> cachedCounts))
+            {
+                System.Diagnostics.Debug.WriteLine("Returning cached device counts by ownership");
+                return cachedCounts;
+            }
+
+            var ownershipTypes = new[] { "company", "personal" };
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            var cutoff = DateTime.UtcNow.AddDays(-30).ToString("o");
+
+            foreach (var type in ownershipTypes)
+            {
+                var response = await ExecuteWithRateLimitingAsync(async () =>
+                {
+                    return await _graphClient.DeviceManagement.ManagedDevices
+                        .GetAsync(req =>
+                        {
+                            req.QueryParameters.Count = true;
+                            req.QueryParameters.Top = 1;
+                            req.QueryParameters.Filter = $"managedDeviceOwnerType eq '{type}' and lastSyncDateTime ge {cutoff}";
+                        });
+                });
+
+                counts[type] = (int)(response?.OdataCount ?? 0);
+            }
+
+            // Cache the result
+            CacheMethodResult("DeviceCountsByOwnership", counts);
+
+            return counts;
+        }
         public async Task<(List<DeviceViewModel>, Dictionary<string, int>)> GetNonCompliantDevicesAsync()
         {
             var result = new List<DeviceViewModel>();
@@ -557,7 +597,13 @@ namespace IntuneComplianceMonitor.Services
 
         public async Task<int> GetTotalDeviceCountAsync()
         {
-            // Get the active devices timeframe from settings
+            // Try to get cached result
+            if (TryGetCachedResult("TotalDeviceCount", out int cachedCount))
+            {
+                System.Diagnostics.Debug.WriteLine("Returning cached total device count");
+                return cachedCount;
+            }
+
             int activeDevicesTimeframe = _settingsService.CurrentSettings.ActiveDevicesTimeframeInDays;
             var cutoff = DateTime.UtcNow.AddDays(-activeDevicesTimeframe).ToString("o");
 
@@ -574,7 +620,12 @@ namespace IntuneComplianceMonitor.Services
                         });
                 });
 
-                return (int)(response?.OdataCount ?? 0);
+                int totalCount = (int)(response?.OdataCount ?? 0);
+
+                // Cache the result
+                CacheMethodResult("TotalDeviceCount", totalCount);
+
+                return totalCount;
             }
             catch (Exception ex)
             {
@@ -582,7 +633,6 @@ namespace IntuneComplianceMonitor.Services
                 return 0;
             }
         }
-
         // Wrapper method to enforce rate limiting
         private async Task<T> ExecuteWithRateLimitingAsync<T>(Func<Task<T>> graphOperation, CancellationToken cancellationToken = default)
         {
