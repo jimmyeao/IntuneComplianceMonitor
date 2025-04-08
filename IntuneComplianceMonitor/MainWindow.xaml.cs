@@ -4,17 +4,52 @@ using IntuneComplianceMonitor.Views;
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+
+
 
 namespace IntuneComplianceMonitor
 {
     public partial class MainWindow : Window
     {
+        public string TokenStatus => $"Token expires in: {ServiceManager.Instance.IntuneService.TokenProvider.TimeUntilExpiry:mm\\:ss}";
+        public string CurrentUser => $"Signed in as: {ServiceManager.Instance.IntuneService.TokenProvider.CurrentUserPrincipalName ?? "Not signed in"}";
+        public ICommand LogoutCommand => new RelayCommand(async _ => await Logout());
+
         public MainWindow()
         {
             InitializeComponent();
+            try
+            {
+                Loaded += async (_, __) =>
+                {
+                    NavigateToPage("Dashboard");
+
+                    await Task.Delay(500); // let the DashboardPage and its DataContext load
+
+                    if (MainFrame.Content is DashboardPage page &&
+                        page.DataContext is DashboardViewModel vm)
+                    {
+                        var user = await ServiceManager.Instance.IntuneService.EnsureUserPrincipalNameAsync();
+                        vm.Title = $"Intune Compliance Monitor — {user}";
+                    }
+                };
+
+
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Unable to set title with user info: {ex.Message}");
+            }
 
             // Load the dashboard page by default
             NavigateToPage("Dashboard");
+        }
+        private async Task Logout()
+        {
+            await ServiceManager.Instance.IntuneService.TokenProvider.LogoutAsync();
+            MessageBox.Show("Logged out. Please restart the app to reauthenticate.", "Logged Out", MessageBoxButton.OK, MessageBoxImage.Information);
+            Application.Current.Shutdown(); // Optional: force restart
         }
 
         private void NavigationButton_Click(object sender, RoutedEventArgs e)
@@ -35,9 +70,10 @@ namespace IntuneComplianceMonitor
                 Dispatcher.Invoke(() => UpdateStatus(message, showProgress));
                 return;
             }
+           
 
             // Update the status UI elements
-            StatusText.Text = message;
+            StatusText.Text = message + " "+ ($"Token valid until: {ServiceManager.Instance.IntuneService.TokenExpires:g}");
             StatusProgress.Visibility = showProgress ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
             StatusProgress.IsIndeterminate = showProgress;
 
@@ -159,6 +195,11 @@ namespace IntuneComplianceMonitor
                     vm.LoadData(forceRefresh: false);
                 }
             }
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Logout();
         }
     }
 }

@@ -17,9 +17,9 @@ namespace IntuneComplianceMonitor.ViewModels
 
         // New property to convert ErrorDetails to a single string for display
         public string ErrorDetailsList =>
-            ErrorDetails != null && ErrorDetails.Any()
-                ? string.Join("; ", ErrorDetails)
-                : "No specific details";
+      ErrorDetails != null && ErrorDetails.Any()
+          ? string.Join("; ", ErrorDetails)
+          : "No specific details";
 
         // Computed property for row coloring
         public bool IsNonCompliant =>

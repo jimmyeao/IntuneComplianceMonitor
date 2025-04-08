@@ -55,7 +55,7 @@
                           IsReadOnly="True"
                           GridLinesVisibility="Horizontal"
                           HeadersVisibility="Column"
-                          AlternatingRowBackground="#F9F9F9"
+                         
                           RowHeaderWidth="0"
                           Margin="10">
 

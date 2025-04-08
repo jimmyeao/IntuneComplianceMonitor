@@ -1,4 +1,5 @@
-﻿using Microsoft.Identity.Client;
+﻿using IntuneComplianceMonitor.Models;
+using Microsoft.Identity.Client;
 using Microsoft.Kiota.Abstractions.Authentication;
 using System.IO;
 using System.Text.Json;
@@ -13,6 +14,9 @@ public class TokenProvider : IAccessTokenProvider
     private string _cachedToken = null;
     private DateTime _tokenExpiration = DateTime.MinValue;
     private const string TOKEN_CACHE_FILE = "token_cache.json";
+    public DateTime TokenExpires => _tokenExpiration;
+    public string CurrentUserPrincipalName { get; set; }
+    public TimeSpan TimeUntilExpiry => _tokenExpiration - DateTime.Now;
 
     // Extend token cache duration (e.g., 14 days)
     private const int TOKEN_CACHE_DAYS = 14;
@@ -20,11 +24,66 @@ public class TokenProvider : IAccessTokenProvider
     public TokenProvider(IPublicClientApplication msalClient, string[] scopes)
     {
         _msalClient = msalClient;
+
+        // Hook MSAL cache persistence
+        MsalCacheHelper.EnableSerialization(_msalClient.UserTokenCache);
+
         _scopes = scopes;
         AllowedHostsValidator = new AllowedHostsValidator();
 
         // Load persisted token on initialization
         LoadPersistedToken();
+       
+
+    }
+    public async Task LoadAccountInfoAsync()
+    {
+        try
+        {
+            var accounts = await _msalClient.GetAccountsAsync();
+            var account = accounts.FirstOrDefault();
+            if (account != null)
+            {
+                CurrentUserPrincipalName = account.Username ?? "Unknown";
+                System.Diagnostics.Debug.WriteLine($"[MSAL] Loaded account: {CurrentUserPrincipalName}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[MSAL] No cached account found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[MSAL] Error loading account info: {ex.Message}");
+        }
+    }
+
+
+    public async Task LogoutAsync()
+    {
+        try
+        {
+            var accounts = await _msalClient.GetAccountsAsync();
+            foreach (var acc in accounts)
+            {
+                await _msalClient.RemoveAsync(acc);
+            }
+
+            // Clear cache file
+            var cachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "msal_token_cache.bin");
+            if (File.Exists(cachePath))
+                File.Delete(cachePath);
+
+            _cachedToken = null;
+            _tokenExpiration = DateTime.MinValue;
+            CurrentUserPrincipalName = null;
+
+            System.Diagnostics.Debug.WriteLine("User logged out and token cache cleared.");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Logout error: {ex.Message}");
+        }
     }
 
     private void LoadPersistedToken()
@@ -100,6 +159,8 @@ public class TokenProvider : IAccessTokenProvider
             {
                 System.Diagnostics.Debug.WriteLine($"Using cached token, valid until {_tokenExpiration}");
                 return _cachedToken;
+                
+
             }
 
             var accounts = await _msalClient.GetAccountsAsync();
@@ -132,8 +193,11 @@ public class TokenProvider : IAccessTokenProvider
             // Cache and persist the token
             _cachedToken = result.AccessToken;
             _tokenExpiration = result.ExpiresOn.DateTime;
-            PersistToken(_cachedToken, _tokenExpiration);
+            CurrentUserPrincipalName = result.Account?.Username ?? "Unknown";
+            System.Diagnostics.Debug.WriteLine($"Signed in as: {CurrentUserPrincipalName}");
 
+            PersistToken(_cachedToken, _tokenExpiration);
+            CurrentUserPrincipalName = result.Account?.Username ?? "Unknown";
             return _cachedToken;
         }
         catch (Exception ex)

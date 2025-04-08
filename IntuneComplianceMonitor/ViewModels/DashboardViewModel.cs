@@ -49,7 +49,19 @@ namespace IntuneComplianceMonitor.ViewModels
         private Dictionary<string, int> _cachedDeviceTypeCounts;
         private Dictionary<string, int> _cachedOwnershipCounts;
         private int? _cachedTotalDeviceCount;
-
+        private string _title = "Intune Compliance Monitor";
+        public string Title
+        {
+            get => _title;
+            set
+            {
+                if (_title != value)
+                {
+                    _title = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
         #endregion Fields
 
         #region Constructors
@@ -349,6 +361,14 @@ namespace IntuneComplianceMonitor.ViewModels
         {
             IsLoading = true;
             StatusMessage = "Loading data...";
+            await ServiceManager.Instance.IntuneService.GetTotalDeviceCountAsync(); // forces token acquisition
+
+            var user = ServiceManager.Instance.IntuneService.TokenProvider.CurrentUserPrincipalName;
+            if (!string.IsNullOrWhiteSpace(user))
+            {
+                Title = $"Intune Compliance Monitor — {user}";
+            }
+            System.Diagnostics.Debug.WriteLine($"[TOKEN DEBUG] UPN: {user}");
 
             try
             {
@@ -425,6 +445,24 @@ namespace IntuneComplianceMonitor.ViewModels
                 CreateCharts();
 
                 StatusMessage = "Quick stats loaded";
+                if (string.IsNullOrWhiteSpace(this.Title) || this.Title.StartsWith("Intune Compliance Monitor"))
+                {
+                    var user = await ServiceManager.Instance.IntuneService.EnsureUserPrincipalNameAsync();
+                    if (!string.IsNullOrWhiteSpace(user))
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            var mainWindow = Application.Current.MainWindow as MainWindow;
+                            if (mainWindow != null)
+                            {
+                                mainWindow.Title = this.Title;
+                            }
+                        });
+
+
+                    }
+                }
+
             }
             catch (Exception ex)
             {

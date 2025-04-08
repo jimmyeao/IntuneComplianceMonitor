@@ -1,7 +1,7 @@
 ﻿<Window x:Class="IntuneComplianceMonitor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Intune Compliance Monitor" Height="800" Width="1200"
+        Title="{Binding Title}" Height="800" Width="1200"
         WindowStartupLocation="CenterScreen">
 
     <Grid>
@@ -51,6 +51,15 @@
                             Tag="Settings" 
                             Style="{StaticResource NavButton}" 
                             Click="NavigationButton_Click"/>
+                    <StatusBar DockPanel.Dock="Bottom">
+                        <StatusBarItem Content="{Binding TokenStatus}" />
+                        <StatusBarItem Content="{Binding CurrentUser}" />
+                        <StatusBarItem>
+                            <Button Content="Logout" Command="{Binding LogoutCommand}" Click="Button_Click" />
+                        </StatusBarItem>
+                    </StatusBar>
+
+
                 </StackPanel>
 
                 <!-- Sync button at bottom -->
@@ -110,7 +119,7 @@
                     <TextBlock Grid.Column="0" 
                                x:Name="StatusText" 
                                VerticalAlignment="Center"/>
-
+                   
                     <ProgressBar Grid.Column="1" 
                                  x:Name="StatusProgress" 
                                  Width="100" 

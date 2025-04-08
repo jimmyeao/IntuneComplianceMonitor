@@ -147,7 +147,7 @@
                         HeadersVisibility="Column"
                         CanUserSortColumns="True"
                         Background="Transparent"
-                        AlternatingRowBackground="#F9F9F9">
+                       >
                     <DataGrid.Resources>
                         <Style TargetType="DataGridColumnHeader">
                             <Setter Property="Background" Value="#F0F0F0"/>
