@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using IntuneComplianceMonitor.ViewModels;
 using IntuneComplianceMonitor.Services;
 using System.Windows;
+using Microsoft.Kiota.Abstractions;
 
 namespace IntuneComplianceMonitor.Services
 {
@@ -292,23 +293,21 @@ namespace IntuneComplianceMonitor.Services
                 {
                     foreach (var policy in policyStates.Value)
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        // Check if the policy state is not compliant
                         var stateString = policy.State?.ToString()?.ToLower() ?? "";
-                        if (stateString != "compliant" && !string.IsNullOrEmpty(stateString))
-                        {
-                            // Process each policy...
-                            System.Diagnostics.Debug.WriteLine($"Processing policy: {policy.DisplayName}");
 
-                            // First, try to get the policy name
-                            var policyName = policy.DisplayName ?? "Unknown Policy";
+                        var policyName = policy.DisplayName ?? "Unknown Policy";
 
-                            // Add a generic compliance issue
+                        if (stateString == "notcompliant")
                             complianceIssues.Add($"{policyName}: Non-compliant");
-                        }
+
+                        else if (stateString == "notapplicable")
+                            complianceIssues.Add($"{policyName}: Not applicable");
+
+                        else if (stateString == "compliant")
+                            complianceIssues.Add($"{policyName}: Compliant");
                     }
                 }
+
 
                 System.Diagnostics.Debug.WriteLine($"Completed GetComplianceIssuesAsync: {DateTime.Now}");
             }
@@ -324,6 +323,164 @@ namespace IntuneComplianceMonitor.Services
                 complianceIssues.Add($"Error retrieving compliance details: {ex.Message}");
             }
         }
+        public async Task<List<CompliancePolicyStateViewModel>> GetDeviceComplianceStateWithMetadataAsync(string deviceId, CancellationToken cancellationToken = default)
+        {
+            var result = new List<CompliancePolicyStateViewModel>();
+
+            try
+            {
+                var device = await ExecuteWithRateLimitingAsync(() =>
+                    _graphClient.DeviceManagement.ManagedDevices[deviceId]
+                        .GetAsync(cancellationToken: cancellationToken));
+
+                var userPrincipalName = device?.UserPrincipalName ?? "Unknown";
+                var lastReported = device?.LastSyncDateTime;
+
+                var policies = await ExecuteWithRateLimitingAsync(() =>
+                    _graphClient.DeviceManagement.ManagedDevices[deviceId]
+                        .DeviceCompliancePolicyStates
+                        .GetAsync(cancellationToken: cancellationToken));
+
+                if (policies?.Value != null)
+                {
+                    foreach (var policy in policies.Value)
+                    {
+                        // Show ALL policies for now (even 'unknown')
+                        var state = policy.State?.ToString() ?? "Unknown";
+
+                        var vm = new CompliancePolicyStateViewModel
+                        {
+                            DisplayName = policy.DisplayName ?? "Unnamed Policy",
+                            State = state,
+                            UserPrincipalName = userPrincipalName,
+                            LastReportedDateTime = lastReported,
+                            PolicyId = policy.Id,
+                            ErrorDetails = new List<string>()
+                        };
+
+                        // Optional: look for error settings
+                        if (state.Equals("error", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var errors = await GetPolicySettingErrorsAsync(deviceId, policy.Id, cancellationToken);
+                            vm.ErrorDetails.AddRange(errors);
+                        }
+
+                        result.Add(vm);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error fetching compliance states (device path): {ex.Message}");
+                MessageBox.Show($"Error loading compliance policies: {ex.Message}", "Compliance Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            return result;
+        }
+
+
+        public async Task<List<ConfigurationProfileViewModel>> GetAppliedConfigurationProfilesAsync(string deviceId, CancellationToken cancellationToken = default)
+        {
+            var result = new List<ConfigurationProfileViewModel>();
+
+            try
+            {
+                // 1. Get assigned states for the device
+                var statesResponse = await ExecuteWithRateLimitingAsync(() =>
+                    _graphClient.DeviceManagement.ManagedDevices[deviceId]
+                        .DeviceConfigurationStates
+                        .GetAsync(cancellationToken: cancellationToken));
+
+                if (statesResponse?.Value == null || !statesResponse.Value.Any())
+                    return result;
+
+                // 2. Get all configuration profiles (we'll join by ID)
+                var profilesResponse = await ExecuteWithRateLimitingAsync(() =>
+                    _graphClient.DeviceManagement.DeviceConfigurations
+                        .GetAsync(cancellationToken: cancellationToken));
+
+                var profiles = profilesResponse?.Value?.ToDictionary(p => p.Id, StringComparer.OrdinalIgnoreCase) ?? new();
+
+                foreach (var configState in statesResponse.Value)
+                {
+                    var displayName = "Unnamed";
+                    var description = $"State: {configState.State}";
+
+                    if (!string.IsNullOrEmpty(configState.Id) && profiles.TryGetValue(configState.Id, out var profile))
+                    {
+                        displayName = profile.DisplayName ?? displayName;
+                        description = profile.Description ?? description;
+                    }
+
+                    result.Add(new ConfigurationProfileViewModel
+                    {
+                        Id = configState.Id,
+                        DisplayName = displayName,
+                        Description = description,
+                        Status = configState.State?.ToString()
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error fetching configuration profiles: {ex.Message}");
+                result.Add(new ConfigurationProfileViewModel
+                {
+                    DisplayName = "Error loading profiles",
+                    Description = ex.Message,
+                    Status = "Error"
+                });
+            }
+
+            return result;
+        }
+
+
+        private async Task<List<string>> GetPolicySettingErrorsAsync(string deviceId, string policyId, CancellationToken cancellationToken)
+        {
+            var result = new List<string>();
+
+            try
+            {
+                var request = new RequestInformation
+                {
+                    HttpMethod = Method.GET,
+                    UrlTemplate = "{+baseurl}/deviceManagement/managedDevices/{managedDeviceId}/deviceCompliancePolicyStates/{policyId}/settingStates",
+                    PathParameters = new Dictionary<string, object>
+            {
+                { "baseurl", "https://graph.microsoft.com/v1.0" },
+                { "managedDeviceId", deviceId },
+                { "policyId", policyId }
+            }
+                };
+
+                var response = await _graphClient.RequestAdapter.SendAsync<DeviceComplianceSettingStateCollectionResponse>(
+                    request,
+                    DeviceComplianceSettingStateCollectionResponse.CreateFromDiscriminatorValue,
+                    cancellationToken: cancellationToken
+                );
+
+                if (response?.Value != null)
+                {
+                    foreach (var setting in response.Value)
+                    {
+                        if (setting.State?.ToString()?.Equals("error", StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            result.Add($"{setting.SettingName ?? setting.Setting ?? "Unknown setting"}: Error");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Add($"Failed to load setting errors: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in GetPolicySettingErrorsAsync: {ex.Message}");
+            }
+
+            return result;
+        }
+
+
 
         private string MapDeviceType(string operatingSystem)
         {

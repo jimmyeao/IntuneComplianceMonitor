@@ -135,17 +135,19 @@
                 </Grid>
 
                 <DataGrid Grid.Row="1" 
-                          ItemsSource="{Binding Devices}" 
-                          AutoGenerateColumns="False" 
-                          IsReadOnly="True"
-                          GridLinesVisibility="Horizontal"
-                          BorderThickness="1"
-                          BorderBrush="#DDDDDD"
-                          RowHeaderWidth="0"
-                          HeadersVisibility="Column"
-                          CanUserSortColumns="True"
-                          Background="Transparent"
-                          AlternatingRowBackground="#F9F9F9">
+                        x:Name="DevicesGrid"
+                        ItemsSource="{Binding Devices}" 
+                        MouseDoubleClick="DevicesGrid_MouseDoubleClick"
+                        AutoGenerateColumns="False" 
+                        IsReadOnly="True"
+                        GridLinesVisibility="Horizontal"
+                        BorderThickness="1"
+                        BorderBrush="#DDDDDD"
+                        RowHeaderWidth="0"
+                        HeadersVisibility="Column"
+                        CanUserSortColumns="True"
+                        Background="Transparent"
+                        AlternatingRowBackground="#F9F9F9">
                     <DataGrid.Resources>
                         <Style TargetType="DataGridColumnHeader">
                             <Setter Property="Background" Value="#F0F0F0"/>
@@ -160,7 +162,7 @@
                         </Style>
                     </DataGrid.Resources>
 
-                    <DataGrid.Columns>
+                    <DataGrid.Columns >
                         <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200"/>
                         <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="240"/>
                         <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="140"/>

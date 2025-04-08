@@ -1,6 +1,9 @@
 ﻿using IntuneComplianceMonitor.ViewModels;
 using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Input;
 
 namespace IntuneComplianceMonitor.Views
 {
@@ -23,6 +26,26 @@ namespace IntuneComplianceMonitor.Views
             };
 
             Loaded += DevicesPage_Loaded;
+        }
+        private void DevicesGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Check if the click came from a column header — allow built-in sorting to work
+            DependencyObject source = (DependencyObject)e.OriginalSource;
+            while (source != null && source is not DataGridRow)
+            {
+                if (source is DataGridColumnHeader)
+                    return; // 👈 exit: let sorting happen
+
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            // If a row was double-clicked, open details
+            if (DevicesGrid.SelectedItem is DeviceViewModel selectedDevice)
+            {
+                var detailsWindow = new DeviceDetailsWindow(selectedDevice);
+                detailsWindow.Owner = Window.GetWindow(this);
+                detailsWindow.ShowDialog();
+            }
         }
 
         private void DevicesPage_Loaded(object sender, System.Windows.RoutedEventArgs e)
