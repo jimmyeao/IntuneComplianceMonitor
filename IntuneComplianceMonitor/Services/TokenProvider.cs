@@ -14,6 +14,9 @@ public class TokenProvider : IAccessTokenProvider
     private DateTime _tokenExpiration = DateTime.MinValue;
     private const string TOKEN_CACHE_FILE = "token_cache.json";
 
+    // Extend token cache duration (e.g., 14 days)
+    private const int TOKEN_CACHE_DAYS = 14;
+
     public TokenProvider(IPublicClientApplication msalClient, string[] scopes)
     {
         _msalClient = msalClient;
@@ -37,11 +40,14 @@ public class TokenProvider : IAccessTokenProvider
                 var tokenData = JsonSerializer.Deserialize<TokenCacheData>(
                     File.ReadAllText(cacheFilePath));
 
-                if (tokenData != null && tokenData.Expiration > DateTime.UtcNow)
+                // Check if the cached token is still valid and not too old
+                if (tokenData != null &&
+                    tokenData.Expiration > DateTime.UtcNow &&
+                    DateTime.UtcNow < tokenData.CacheCreated.AddDays(TOKEN_CACHE_DAYS))
                 {
                     _cachedToken = tokenData.Token;
                     _tokenExpiration = tokenData.Expiration;
-                    System.Diagnostics.Debug.WriteLine("Loaded persisted token");
+                    System.Diagnostics.Debug.WriteLine($"Loaded persisted token, valid until {_tokenExpiration}");
                 }
             }
         }
@@ -62,14 +68,15 @@ public class TokenProvider : IAccessTokenProvider
             var tokenData = new TokenCacheData
             {
                 Token = token,
-                Expiration = expiration
+                Expiration = expiration,
+                CacheCreated = DateTime.UtcNow
             };
 
             File.WriteAllText(cacheFilePath,
                 JsonSerializer.Serialize(tokenData,
                     new JsonSerializerOptions { WriteIndented = true }));
 
-            System.Diagnostics.Debug.WriteLine("Persisted token to file");
+            System.Diagnostics.Debug.WriteLine($"Persisted token, expires at {expiration}");
         }
         catch (Exception ex)
         {
@@ -87,7 +94,9 @@ public class TokenProvider : IAccessTokenProvider
         try
         {
             // Check for valid cached token
-            if (!string.IsNullOrEmpty(_cachedToken) && _tokenExpiration > DateTime.Now.AddMinutes(5))
+            if (!string.IsNullOrEmpty(_cachedToken) &&
+                _tokenExpiration > DateTime.Now.AddMinutes(5) &&
+                DateTime.UtcNow < _tokenExpiration.AddDays(TOKEN_CACHE_DAYS))
             {
                 System.Diagnostics.Debug.WriteLine($"Using cached token, valid until {_tokenExpiration}");
                 return _cachedToken;
@@ -141,9 +150,10 @@ public class TokenProvider : IAccessTokenProvider
     public AllowedHostsValidator AllowedHostsValidator { get; }
 }
 
-// Separate class for serialization
+// Updated to include cache creation time
 public class TokenCacheData
 {
     public string Token { get; set; }
     public DateTime Expiration { get; set; }
+    public DateTime CacheCreated { get; set; }
 }

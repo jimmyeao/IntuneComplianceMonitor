@@ -87,19 +87,27 @@ namespace IntuneComplianceMonitor.Views
         }
         private async Task LoadComplianceDetailsAsync()
         {
-            var list = await ServiceManager.Instance.IntuneService.GetDeviceComplianceStateWithMetadataAsync(_device.DeviceId);
+            var list = await ServiceManager.Instance.IntuneService
+                .GetDeviceComplianceStateWithMetadataAsync(_device.DeviceId);
 
             Application.Current.Dispatcher.Invoke(() =>
             {
                 PolicyStates.Clear();
                 foreach (var item in list)
                 {
+                    // Highlight items that are non-compliant or in error
+                    if (item.State.ToLower() == "noncompliant" ||
+                        item.State.ToLower() == "error")
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Non-Compliant Policy: {item.DisplayName}" +
+                            $"\nError Details: {string.Join("; ", item.ErrorDetails)}");
+                    }
+
                     PolicyStates.Add(item);
-                    System.Diagnostics.Debug.WriteLine($"Added: {item.DisplayName} - {item.State}");
                 }
             });
         }
-
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

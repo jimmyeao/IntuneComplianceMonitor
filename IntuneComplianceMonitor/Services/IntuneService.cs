@@ -304,46 +304,53 @@ namespace IntuneComplianceMonitor.Services
                         var stateString = policyState.State?.ToString()?.ToLower() ?? "";
                         var policyName = policyState.DisplayName?.ToLower() ?? "";
 
-                        // Include DEFAULT policies and platform-specific policies
-                        bool includePolicy = false;
+                        // Debugging: Log all policy details
+                        System.Diagnostics.Debug.WriteLine($"Policy: {policyName}, State: {stateString}");
 
-                        // Always include Default policy
-                        if (policyName.Contains("default"))
-                        {
-                            includePolicy = true;
-                        }
-                        // Include platform-specific policies that match the device platform
-                        else if ((devicePlatform.Contains("ios") && policyName.Contains("ios")) ||
-                                 (devicePlatform.Contains("android") && policyName.Contains("android")) ||
-                                 (devicePlatform.Contains("windows") && policyName.Contains("windows")) ||
-                                 (devicePlatform.Contains("mac") && (policyName.Contains("mac") || policyName.Contains("osx"))))
-                        {
-                            includePolicy = true;
-                        }
+                        // Determine if the policy is relevant
+                        bool isPolicyRelevant =
+                            // Always include explicitly non-compliant policies
+                            stateString == "noncompliant" ||
 
-                        // Skip if policy should not be included or if it's "unknown" state
-                        if (!includePolicy || stateString == "unknown")
+                            // Include relevant platform-specific policies
+                            (
+                                (devicePlatform.Contains("ios") && policyName.Contains("ios")) ||
+                                (devicePlatform.Contains("android") && policyName.Contains("android")) ||
+                                (devicePlatform.Contains("windows") && policyName.Contains("windows")) ||
+                                (devicePlatform.Contains("mac") && (policyName.Contains("mac") || policyName.Contains("osx"))) ||
+                                // Always include default policy
+                                policyName.Contains("default")
+                            );
+
+                        // Skip irrelevant policies
+                        if (!isPolicyRelevant &&
+                            stateString != "noncompliant" &&
+                            stateString != "error")
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Skipping irrelevant policy: {policyName}");
                             continue;
+                        }
 
                         var vm = new CompliancePolicyStateViewModel
                         {
                             PolicyId = policyState.Id,
                             DisplayName = policyState.DisplayName ?? "Unnamed Policy",
-                            State = policyState.State?.ToString() ?? "Unknown",
+                            State = MapComplianceState(stateString),
                             UserPrincipalName = device?.UserPrincipalName ?? "Unknown",
                             LastReportedDateTime = device?.LastSyncDateTime,
                             ErrorDetails = new List<string>()
                         };
 
-                        // Add policy state details for non-compliant items
+                        // Always try to get error details for non-compliant items
                         if (stateString == "noncompliant" || stateString == "error")
                         {
-                            // Try to get settings that are causing non-compliance
                             await GetNonCompliantSettingsAsync(deviceId, policyState.Id, vm.ErrorDetails, cancellationToken);
                         }
 
                         result.Add(vm);
                     }
+
+                    System.Diagnostics.Debug.WriteLine($"Returning {result.Count} compliance policies after filtering");
                 }
             }
             catch (Exception ex)
@@ -362,11 +369,31 @@ namespace IntuneComplianceMonitor.Services
 
             return result;
         }
+        // Helper method to map compliance states
+        private string MapComplianceState(string rawState)
+        {
+            // Normalize state strings and handle edge cases
+            switch (rawState.ToLower())
+            {
+                case "compliant":
+                    return "Compliant";
+                case "noncompliant":
+                    return "Non-Compliant";
+                case "notapplicable":
+                    return "Not Applicable";
+                case "unknown":
+                    return "Unknown";
+                case "error":
+                    return "Error";
+                default:
+                    System.Diagnostics.Debug.WriteLine($"Unexpected compliance state: {rawState}");
+                    return rawState;
+            }
+        }
         private async Task GetNonCompliantSettingsAsync(string deviceId, string policyId, List<string> errorDetails, CancellationToken cancellationToken)
         {
             try
             {
-                // Use the existing method signature that works with your Microsoft Graph version
                 var request = new RequestInformation
                 {
                     HttpMethod = Method.GET,
@@ -391,21 +418,23 @@ namespace IntuneComplianceMonitor.Services
                     {
                         if (setting.State.ToString().ToLower() != "compliant")
                         {
-                            // Just use State instead of ErrorDescription
                             string details = setting.State.ToString() ?? "Unknown issue";
                             string settingName = setting.Setting ?? "Unknown setting";
 
-                            // You can check for other potential properties here
-                            // Try to use reflection to find if there's an error description property
-                            var errorDescProp = setting.GetType().GetProperty("ErrorDescription");
-                            if (errorDescProp != null)
+                            // Additional error detail extraction
+                            try
                             {
-                                var errorDescValue = errorDescProp.GetValue(setting) as string;
-                                if (!string.IsNullOrEmpty(errorDescValue))
-                                {
-                                    details = errorDescValue;
-                                }
+                                // Use reflection to find additional error properties
+                                var properties = setting.GetType().GetProperties();
+                                var additionalDetails = properties
+                                    .Where(p =>
+                                        p.Name.Contains("error", StringComparison.OrdinalIgnoreCase) &&
+                                        p.GetValue(setting) != null)
+                                    .Select(p => $"{p.Name}: {p.GetValue(setting)}");
+
+                                details = string.Join("; ", additionalDetails.Concat(new[] { details }));
                             }
+                            catch { }
 
                             errorDetails.Add($"{settingName}: {details}");
                         }
@@ -422,8 +451,7 @@ namespace IntuneComplianceMonitor.Services
                 errorDetails.Add($"Could not load setting details: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Error fetching setting details: {ex.Message}");
             }
-        }
-        // New helper method for getting detailed non-compliant settings
+        }        // New helper method for getting detailed non-compliant settings
 
         public async Task<Dictionary<string, int>> GetDeviceCountsByTypeAsync()
         {
