@@ -51,96 +51,59 @@ namespace IntuneComplianceMonitor
         private void NavigateToPage(string pageName)
         {
             Page page = null;
-            bool forceRefresh = false;
 
-            // If we're already on a page of the same type, force a refresh
-            if (MainFrame.Content is Page currentPage &&
-                ((pageName == "Dashboard" && currentPage is DashboardPage) ||
-                 (pageName == "Devices" && currentPage is DevicesPage) ||
-                 (pageName == "NonCompliant" && currentPage is DevicesPage) ||
-                 (pageName == "NotCheckedIn" && currentPage is DevicesPage) ||
-                 (pageName == "Settings" && currentPage is SettingsPage)))
+            switch (pageName)
             {
-                // We're navigating to the same page type, so use existing instance but force refresh
-                page = currentPage;
-                forceRefresh = true;
-            }
-            else
-            {
-                // Create a new page instance
-                switch (pageName)
-                {
-                    case "Dashboard":
-                        page = new DashboardPage();
-                        break;
-                    case "Devices":
-                        page = new DevicesPage();
-                        // Make sure we're showing all devices
-                        if (page.DataContext is DashboardViewModel deviceViewModel)
-                        {
-                            deviceViewModel.ShowOnlyNonCompliant = false;
-                            deviceViewModel.FilterByNotCheckedIn = false;
-                            deviceViewModel.SearchText = "";
-                            deviceViewModel.SelectedDeviceType = "";
-                            deviceViewModel.SelectedOwnership = "";
-                        }
-                        break;
-                    case "NonCompliant":
-                        // Create DevicesPage with non-compliant filter
-                        page = new DevicesPage();
-                        // Check if the DataContext is already set and is a DashboardViewModel
-                        if (page.DataContext is DashboardViewModel nonCompliantViewModel)
-                        {
-                            // Clear other filters first
-                            nonCompliantViewModel.SearchText = "";
-                            nonCompliantViewModel.SelectedDeviceType = "";
-                            nonCompliantViewModel.SelectedOwnership = "";
-                            nonCompliantViewModel.FilterByNotCheckedIn = false;
-                            // Then set non-compliant filter
-                            nonCompliantViewModel.ShowOnlyNonCompliant = true;
-                        }
-                        break;
-                    case "NotCheckedIn":
-                        // Create DevicesPage with not checked in filter
-                        page = new DevicesPage();
-                        // Check if the DataContext is already set and is a DashboardViewModel
-                        if (page.DataContext is DashboardViewModel notCheckedInViewModel)
-                        {
-                            // Clear other filters first
-                            notCheckedInViewModel.SearchText = "";
-                            notCheckedInViewModel.SelectedDeviceType = "";
-                            notCheckedInViewModel.SelectedOwnership = "";
-                            notCheckedInViewModel.ShowOnlyNonCompliant = false;
-                            // Set days not checked in from settings
-                            var settings = ServiceManager.Instance.SettingsService.CurrentSettings;
-                            notCheckedInViewModel.DaysNotCheckedIn = settings.DaysNotCheckedIn;
-                            notCheckedInViewModel.FilterByNotCheckedIn = true;
-                        }
-                        break;
-                    case "Settings":
-                        page = new SettingsPage();
-                        break;
-                    default:
-                        page = new DashboardPage();
-                        break;
-                }
+                case "Dashboard":
+                    page = new DashboardPage();
+                    break;
+                case "Devices":
+                    page = new DevicesPage();
+                    if (page.DataContext is DashboardViewModel deviceViewModel)
+                    {
+                        // Completely reset all filters for All Devices view
+                        deviceViewModel.SearchText = "";
+                        deviceViewModel.SelectedDeviceType = "";
+                        deviceViewModel.SelectedOwnership = "";
+                        deviceViewModel.ShowOnlyNonCompliant = false;
+                        deviceViewModel.FilterByNotCheckedIn = false;
+                        deviceViewModel.DaysNotCheckedIn = 0; // Reset days not checked in
+
+                        // Ensure filters are applied with reset conditions
+                        deviceViewModel.ApplyFilters();
+                    }
+                    break;
+                case "NotCheckedIn":
+                    page = new DevicesPage();
+                    if (page.DataContext is DashboardViewModel notCheckedInViewModel)
+                    {
+                        // Clear other filters first
+                        notCheckedInViewModel.SearchText = "";
+                        notCheckedInViewModel.SelectedDeviceType = "";
+                        notCheckedInViewModel.SelectedOwnership = "";
+                        notCheckedInViewModel.ShowOnlyNonCompliant = false;
+
+                        // Set days not checked in from settings
+                        var settings = ServiceManager.Instance.SettingsService.CurrentSettings;
+                        notCheckedInViewModel.DaysNotCheckedIn = settings.DaysNotCheckedIn;
+
+                        // Automatically set and apply the filter
+                        notCheckedInViewModel.FilterByNotCheckedIn = true;
+
+                        // Trigger immediate filter application
+                        notCheckedInViewModel.ApplyFilters();
+                    }
+                    break;
+                case "Settings":
+                    page = new SettingsPage();
+                    break;
+                default:
+                    page = new DashboardPage();
+                    break;
             }
 
-            // If we got a new or existing page, use it
-            if (page != null)
-            {
-                // If reusing the same page, just refresh its data if it's a DashboardViewModel
-                if (forceRefresh && page.DataContext is DashboardViewModel viewModel)
-                {
-                    viewModel.LoadData(forceRefresh: true);
-                }
-
-                // Navigate to the page
-                if (!forceRefresh)
-                {
-                    MainFrame.Navigate(page);
-                }
-            }
+            // Always navigate to the new page
+            MainFrame.Navigate(page);
         }
         private void SyncButton_Click(object sender, RoutedEventArgs e)
         {

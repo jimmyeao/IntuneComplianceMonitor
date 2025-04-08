@@ -352,17 +352,25 @@ namespace IntuneComplianceMonitor.ViewModels
 
             try
             {
-                await LoadQuickStatsAsync();
-
-                if (!forceRefresh && _allDevicesCache != null && _allDevicesCache.Any())
+                // Always load quick stats first
+                try
                 {
-                    StatusMessage = "Using cached memory data";
-                    ApplyDeviceData(_allDevicesCache);
-                    return;
-                }
+                    // Check if quick stats are already loaded and not forcing refresh
+                    if (!forceRefresh && _cachedTotalDeviceCount.HasValue &&
+                        _cachedDeviceTypeCounts != null &&
+                        _cachedOwnershipCounts != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Using cached quick stats, skipping Graph call");
+                        UpdateCharts(); // Use existing cached data
+                    }
+                    else
+                    {
+                        // Load quick stats
+                        await LoadQuickStatsAsync();
+                    }
 
-                // ✅ Try disk cache first
-                if (!forceRefresh)
+                    // Try disk cache if not forced refresh
+                    if (!forceRefresh)
                 {
                     var cachedDevices = await ServiceManager.Instance.DataCacheService.GetDevicesFromCacheAsync();
                     if (cachedDevices != null && cachedDevices.Any())
@@ -370,11 +378,12 @@ namespace IntuneComplianceMonitor.ViewModels
                         _allDevicesCache = cachedDevices;
                         StatusMessage = "Loaded from disk cache";
                         ApplyDeviceData(_allDevicesCache);
+                        IsLoading = false;
                         return;
                     }
                 }
 
-                // 🟢 If we get here, we need to fetch fresh from Intune or Sample
+                // If we get here, we need to fetch fresh data
                 if (ServiceManager.Instance.UseRealData)
                 {
                     StatusMessage = "Fetching from Intune...";
@@ -403,7 +412,17 @@ namespace IntuneComplianceMonitor.ViewModels
             finally
             {
                 IsLoading = false;
-                StartComplianceReasonFetch(_allDevicesCache);
+            }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadData error: {ex.Message}");
+                StatusMessage = $"Error: {ex.Message}";
+                MessageBox.Show($"Error loading data: {ex.Message}", "Data Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -766,7 +785,7 @@ namespace IntuneComplianceMonitor.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private void ApplyFilters()
+        public void ApplyFilters()
         {
             if (_allDevicesCache == null) return;
 
@@ -790,7 +809,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 {
                     filtered = filtered.Where(d => d.DeviceType == SelectedDeviceType);
                 }
-
+               
                 // Apply ownership filter
                 if (!string.IsNullOrWhiteSpace(SelectedOwnership))
                 {
@@ -798,11 +817,12 @@ namespace IntuneComplianceMonitor.ViewModels
                 }
 
                 // Apply check-in date filter
-                if (FilterByNotCheckedIn || DaysNotCheckedIn > 0)
+                if (FilterByNotCheckedIn)
                 {
                     var cutoffDate = DateTime.Now.AddDays(-DaysNotCheckedIn);
                     filtered = filtered.Where(d => d.LastCheckIn < cutoffDate);
                 }
+
 
                 // Apply non-compliant filter
                 if (ShowOnlyNonCompliant)

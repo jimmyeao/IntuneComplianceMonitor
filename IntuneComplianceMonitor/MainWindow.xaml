@@ -40,10 +40,7 @@
                             Style="{StaticResource NavButton}" 
                             Click="NavigationButton_Click"/>
 
-                    <Button Content="Non-Compliant Devices" 
-                            Tag="NonCompliant" 
-                            Style="{StaticResource NavButton}" 
-                            Click="NavigationButton_Click"/>
+                    
 
                     <Button Content="Not Checked In" 
                             Tag="NotCheckedIn" 

@@ -6,99 +6,93 @@ public class ServiceManager
     private static ServiceManager _instance;
     private static readonly object _lock = new object();
 
-    public IntuneService IntuneService { get; private set; }
-    public SampleDataService SampleDataService { get; private set; }
-    public DataCacheService DataCacheService { get; private set; }
-    public SettingsService SettingsService { get; private set; }
+    // Make these lazy-initialized with thread-safety
+    private Lazy<IntuneService> _intuneService;
+    private Lazy<SampleDataService> _sampleDataService;
+    private Lazy<DataCacheService> _dataCacheService;
+    private Lazy<SettingsService> _settingsService;
+
     public bool UseRealData { get; private set; }
 
     private ServiceManager()
     {
+        InitializeServices();
+    }
+
+    private void InitializeServices()
+    {
         try
         {
-            System.Diagnostics.Debug.WriteLine("ServiceManager constructor starting");
+            System.Diagnostics.Debug.WriteLine("ServiceManager InitializeServices starting");
 
-            // Initialize settings service first
-            System.Diagnostics.Debug.WriteLine("Initializing SettingsService");
-            SettingsService = new SettingsService();
-            System.Diagnostics.Debug.WriteLine("SettingsService initialized successfully");
-
-            try
+            // Lazy initialization with thread-safe singleton pattern
+            _settingsService = new Lazy<SettingsService>(() =>
             {
-                System.Diagnostics.Debug.WriteLine("Initializing IntuneService");
-                IntuneService = new IntuneService(SettingsService);
-                UseRealData = true;
-                System.Diagnostics.Debug.WriteLine("IntuneService initialized successfully");
-            }
-            catch (Exception ex)
+                System.Diagnostics.Debug.WriteLine("Initializing SettingsService");
+                return new SettingsService();
+            }, true);
+
+            _sampleDataService = new Lazy<SampleDataService>(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"Error initializing IntuneService: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                MessageBox.Show($"Could not connect to Intune: {ex.Message}\n\nThe application will use sample data instead.",
-                    "Service Initialization Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Diagnostics.Debug.WriteLine("Initializing SampleDataService");
+                return new SampleDataService();
+            }, true);
 
-                UseRealData = false;
-            }
+            _dataCacheService = new Lazy<DataCacheService>(() =>
+            {
+                System.Diagnostics.Debug.WriteLine("Initializing DataCacheService");
+                return new DataCacheService();
+            }, true);
 
-            // Create the sample data service as a fallback
-            System.Diagnostics.Debug.WriteLine("Initializing SampleDataService");
-            SampleDataService = new SampleDataService();
-            System.Diagnostics.Debug.WriteLine("SampleDataService initialized successfully");
+            _intuneService = new Lazy<IntuneService>(() =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("Initializing IntuneService");
+                    var service = new IntuneService(SettingsService);
+                    UseRealData = true;
+                    return service;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error initializing IntuneService: {ex.Message}");
+                    UseRealData = false;
+                    MessageBox.Show($"Could not connect to Intune: {ex.Message}\n\nThe application will use sample data instead.",
+                        "Service Initialization Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return null;
+                }
+            }, true);
 
-            // Create the data cache service
-            System.Diagnostics.Debug.WriteLine("Initializing DataCacheService");
-            DataCacheService = new DataCacheService();
-            System.Diagnostics.Debug.WriteLine("DataCacheService initialized successfully");
-
-            System.Diagnostics.Debug.WriteLine("ServiceManager constructor completed successfully");
+            System.Diagnostics.Debug.WriteLine("ServiceManager InitializeServices completed successfully");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"CRITICAL ERROR in ServiceManager constructor: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-            MessageBox.Show($"A critical error occurred during application initialization: {ex.Message}\n\nStack trace: {ex.StackTrace}",
-                "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-            // Re-throw to allow the application to terminate gracefully
             throw;
         }
     }
+
+    // Expose services with lazy initialization
+    public IntuneService IntuneService => _intuneService.Value;
+    public SampleDataService SampleDataService => _sampleDataService.Value;
+    public DataCacheService DataCacheService => _dataCacheService.Value;
+    public SettingsService SettingsService => _settingsService.Value;
 
     public static ServiceManager Instance
     {
         get
         {
+            // Double-checked locking pattern
             if (_instance == null)
             {
-                System.Diagnostics.Debug.WriteLine("ServiceManager Instance property accessed, instance is null");
                 lock (_lock)
                 {
-                    System.Diagnostics.Debug.WriteLine("Entered lock in ServiceManager Instance property");
                     if (_instance == null)
                     {
-                        System.Diagnostics.Debug.WriteLine("Creating new ServiceManager instance");
-                        try
-                        {
-                            _instance = new ServiceManager();
-                            System.Diagnostics.Debug.WriteLine("ServiceManager instance created successfully");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error creating ServiceManager instance: {ex.Message}");
-                            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                            // Re-throw the exception to be handled by the application
-                            throw;
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("ServiceManager instance already exists");
+                        System.Diagnostics.Debug.WriteLine("Creating ServiceManager instance");
+                        _instance = new ServiceManager();
                     }
                 }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("ServiceManager Instance property accessed, returning existing instance");
             }
             return _instance;
         }
