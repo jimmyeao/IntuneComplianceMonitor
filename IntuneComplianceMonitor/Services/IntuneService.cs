@@ -38,6 +38,12 @@ namespace IntuneComplianceMonitor.Services
             _clientId = _settingsService.CurrentSettings.IntuneClientId;
             _tenantId = _settingsService.CurrentSettings.IntuneTenantId;
 
+            // Validate settings
+            if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_tenantId))
+            {
+                throw new InvalidOperationException("Intune API credentials are missing. Please check your settings.");
+            }
+
             try
             {
                 // Initialize MSAL authentication
@@ -63,6 +69,9 @@ namespace IntuneComplianceMonitor.Services
                 throw;
             }
         }
+    
+
+
 
         // Wrapper method to enforce rate limiting
         private async Task<T> ExecuteWithRateLimitingAsync<T>(Func<Task<T>> graphOperation, CancellationToken cancellationToken = default)

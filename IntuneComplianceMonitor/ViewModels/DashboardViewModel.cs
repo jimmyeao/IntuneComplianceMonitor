@@ -8,9 +8,12 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using OxyPlot;
-using OxyPlot.Series;
-using OxyPlot.Legends;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using LiveChartsCore.SkiaSharpView.Drawing.Geometries;
+using System.Windows.Media;
+using SkiaSharp;
 
 
 
@@ -88,8 +91,9 @@ namespace IntuneComplianceMonitor.ViewModels
         #endregion Events
 
         #region Properties
-        public PlotModel DeviceTypePlotModel { get; private set; }
-        public PlotModel OwnershipPlotModel { get; private set; }
+        public ISeries[] DeviceTypesSeries { get; set; }
+        public ISeries[] OwnershipSeries { get; set; }
+
 
         public ICommand ApplyFiltersCommand { get; }
         public string StatusMessage
@@ -421,256 +425,239 @@ namespace IntuneComplianceMonitor.ViewModels
         // Separate method for chart creation
         private void CreateCharts()
         {
-            // Device Type Donut Chart
-            DeviceTypePlotModel = new PlotModel
+            try
             {
-                Title = string.Empty,
-                PlotAreaBorderThickness = new OxyThickness(0),
-                Background = OxyColors.Transparent
-            };
+                // Device types pie chart
+                var deviceTypesSeries = new List<ISeries>();
 
-            var typePieSeries = new PieSeries
-            {
-                InnerDiameter = 0.55,
-                StrokeThickness = 1.5,
-                OutsideLabelFormat = "{1}: {0}",
-                InsideLabelFormat = null,
-                TickHorizontalLength = 12,
-                TickRadialLength = 8,
-                AngleSpan = 360,
-                StartAngle = 90,
-                TextColor = OxyColors.Black,
-                FontSize = 14,
-                ExplodedDistance = 0
-            };
+                // Define colors for device types - using the same colors as your OxyPlot version
+                var deviceTypeColors = new Dictionary<string, SKColor>
+        {
+            { "windows", new SKColor(30, 144, 255) },  // DodgerBlue
+            { "macos", new SKColor(0, 200, 81) },      // Green
+            { "ios", new SKColor(255, 167, 38) },        // Material OrangeRed
+            { "android", new SKColor(76, 175, 80) }    // Material Green
+        };
 
-            // Define custom colors for device types
-            var deviceTypeColors = new Dictionary<string, OxyColor>
-    {
-        { "windows", OxyColor.Parse("#1E90FF") },  // DodgerBlue
-        { "macos", OxyColor.Parse("#00C851") },    // Green
-        { "ios", OxyColor.Parse("#FF4500") },      // OrangeRed
-        { "android", OxyColor.Parse("#4CAF50") }   // Material Green
-    };
-
-            // Add slices for each device type
-            foreach (var kvp in DevicesByType)
-            {
-                var slice = new PieSlice(kvp.Key, kvp.Value);
-
-                // Set custom colors based on device type
-                if (deviceTypeColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                // Add slices for each device type
+                foreach (var kvp in DevicesByType)
                 {
-                    slice.Fill = color;
+                    SKColor sliceColor;
+                    if (deviceTypeColors.TryGetValue(kvp.Key.ToLower(), out sliceColor))
+                    {
+                        // Use the custom color
+                    }
+                    else
+                    {
+                        // Use a default color if not found
+                        sliceColor = new SKColor(100, 100, 100);
+                    }
+
+                    deviceTypesSeries.Add(new PieSeries<double>
+                    {
+                        Values = new double[] { kvp.Value },
+                        Name = $"{kvp.Key}: {kvp.Value}",
+                        Fill = new SolidColorPaint(sliceColor),
+                        Stroke = new SolidColorPaint(SKColors.White) { StrokeThickness = 2 },
+                        DataLabelsSize = 14,
+                        DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                        InnerRadius = 40
+                
+                    });
                 }
 
-                typePieSeries.Slices.Add(slice);
-            }
+                DeviceTypesSeries = deviceTypesSeries.ToArray();
+                OnPropertyChanged(nameof(DeviceTypesSeries));
 
-            DeviceTypePlotModel.Series.Clear();
-            DeviceTypePlotModel.Series.Add(typePieSeries);
+                // Ownership pie chart
+                var ownershipSeries = new List<ISeries>();
 
-            // Add legend for device type chart
-            DeviceTypePlotModel.Legends.Add(new Legend
-            {
-                LegendPosition = LegendPosition.RightTop,
-                LegendPlacement = LegendPlacement.Inside,
-                LegendMargin = 10,
-                LegendPadding = 8,
-                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
-                LegendBorder = OxyColors.Gray,
-                LegendBorderThickness = 1,
-                LegendTextColor = OxyColors.Black
-            });
+                // Define colors for ownership types - using the same colors as your OxyPlot version
+                var ownershipColors = new Dictionary<string, SKColor>
+        {
+            { "company", new SKColor(76, 175, 80) },   // Material Green
+            { "personal", new SKColor(255, 167, 38) }  // Material Orange
+        };
 
-            OnPropertyChanged(nameof(DeviceTypePlotModel));
-
-            // Ownership Donut Chart with similar improvements
-            OwnershipPlotModel = new PlotModel
-            {
-                Title = string.Empty,
-                PlotAreaBorderThickness = new OxyThickness(0),
-                Background = OxyColors.Transparent
-            };
-
-            var ownershipPieSeries = new PieSeries
-            {
-                InnerDiameter = 0.55,
-                StrokeThickness = 1.5,
-                OutsideLabelFormat = "{1}: {0}",
-                InsideLabelFormat = null,
-                TickHorizontalLength = 12,
-                TickRadialLength = 8,
-                AngleSpan = 360,
-                StartAngle = 90,
-                TextColor = OxyColors.Black,
-                FontSize = 14,
-                ExplodedDistance = 0
-            };
-
-            // Define custom colors for ownership types
-            var ownershipColors = new Dictionary<string, OxyColor>
-    {
-        { "company", OxyColor.Parse("#4CAF50") },  // Material Green
-        { "personal", OxyColor.Parse("#FFA726") }  // Material Orange
-    };
-
-            foreach (var kvp in DevicesByOwnership)
-            {
-                var slice = new PieSlice(kvp.Key, kvp.Value);
-                if (ownershipColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                foreach (var kvp in DevicesByOwnership)
                 {
-                    slice.Fill = color;
+                    SKColor sliceColor;
+                    if (ownershipColors.TryGetValue(kvp.Key.ToLower(), out sliceColor))
+                    {
+                        // Use the custom color
+                    }
+                    else
+                    {
+                        // Use a default color if not found
+                        sliceColor = new SKColor(100, 100, 100);
+                    }
+
+                    ownershipSeries.Add(new PieSeries<double>
+                    {
+                        Values = new double[] { kvp.Value },
+                        Name = $"{kvp.Key}: {kvp.Value}",
+                        Fill = new SolidColorPaint(sliceColor),
+                        Stroke = new SolidColorPaint(SKColors.White) { StrokeThickness = 2 },
+                        DataLabelsSize = 14,
+                        DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                        InnerRadius = 40
+                    });
                 }
-                ownershipPieSeries.Slices.Add(slice);
+
+                OwnershipSeries = ownershipSeries.ToArray();
+                OnPropertyChanged(nameof(OwnershipSeries));
             }
-
-            OwnershipPlotModel.Series.Clear();
-            OwnershipPlotModel.Series.Add(ownershipPieSeries);
-
-            // Add legend for ownership chart
-            OwnershipPlotModel.Legends.Add(new Legend
+            catch (Exception ex)
             {
-                LegendPosition = LegendPosition.RightTop,
-                LegendPlacement = LegendPlacement.Inside,
-                LegendMargin = 10,
-                LegendPadding = 8,
-                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
-                LegendBorder = OxyColors.Gray,
-                LegendBorderThickness = 1,
-                LegendTextColor = OxyColors.Black
-            });
-
-            OnPropertyChanged(nameof(OwnershipPlotModel));
+                System.Diagnostics.Debug.WriteLine($"Error creating charts: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
+            }
         }
-
-
+       
         private void UpdateCharts()
         {
-            // Device Type Donut Chart
-            DeviceTypePlotModel = new PlotModel
+            try
             {
-                Title = string.Empty,
-                PlotAreaBorderThickness = new OxyThickness(0),
-                Background = OxyColors.Transparent
-            };
+                // Device types pie chart
+                var deviceTypesSeries = new List<ISeries>();
 
-            var typePieSeries = new PieSeries
-            {
-                InnerDiameter = 0.55,             // Slightly larger hole
-                StrokeThickness = 1.5,
-                OutsideLabelFormat = "{1}: {0}",
-                InsideLabelFormat = null,         // No inside labels
-                TickHorizontalLength = 12,
-                TickRadialLength = 8,
-                AngleSpan = 360,
-                StartAngle = 90,
-                TextColor = OxyColors.Black,
-                FontSize = 14,
-                ExplodedDistance = 0             // No explosion effect
-            };
-
-            // Define custom colors for device types with better contrast
-            var deviceTypeColors = new Dictionary<string, OxyColor>
-    {
-        { "windows", OxyColor.Parse("#1E90FF") },  // DodgerBlue
-        { "macos", OxyColor.Parse("#00C851") },    // Green
-        { "ios", OxyColor.Parse("#FF4500") },      // OrangeRed
-        { "android", OxyColor.Parse("#4CAF50") }   // Material Green
-    };
-
-            // Add slices for each device type
-            foreach (var kvp in _cachedDeviceTypeCounts)
-            {
-                var slice = new PieSlice(kvp.Key, kvp.Value);
-
-                // Set custom colors based on device type
-                if (deviceTypeColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                // Only proceed if we have data
+                if (_cachedDeviceTypeCounts == null || !_cachedDeviceTypeCounts.Any())
                 {
-                    slice.Fill = color;
+                    DeviceTypesSeries = Array.Empty<ISeries>();
+                    OwnershipSeries = Array.Empty<ISeries>();
+                    OnPropertyChanged(nameof(DeviceTypesSeries));
+                    OnPropertyChanged(nameof(OwnershipSeries));
+                    return;
                 }
 
-                typePieSeries.Slices.Add(slice);
-            }
+                // Define colors
+                var deviceTypeColors = new List<SKColor>
+        {
+            new SKColor(30, 144, 255),  // Windows - DodgerBlue
+            new SKColor(0, 200, 81),    // MacOS - Green
+            new SKColor(255, 69, 0),    // iOS - OrangeRed
+            new SKColor(76, 175, 80)    // Android - Material Green
+        };
 
-            DeviceTypePlotModel.Series.Clear();
-            DeviceTypePlotModel.Series.Add(typePieSeries);
-
-            // Add legend items manually for better control
-            DeviceTypePlotModel.Legends.Add(new Legend
-            {
-                LegendPosition = LegendPosition.RightTop,
-                LegendPlacement = LegendPlacement.Inside,
-                LegendMargin = 10,
-                LegendPadding = 8,
-                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
-                LegendBorder = OxyColors.Gray,
-                LegendBorderThickness = 1,
-                LegendTextColor = OxyColors.Black
-            });
-
-            // Update the model
-            OnPropertyChanged(nameof(DeviceTypePlotModel));
-
-            // Ownership Donut Chart with similar improvements
-            OwnershipPlotModel = new PlotModel
-            {
-                Title = string.Empty,
-                PlotAreaBorderThickness = new OxyThickness(0),
-                Background = OxyColors.Transparent
-            };
-
-            var ownershipPieSeries = new PieSeries
-            {
-                InnerDiameter = 0.55,
-                StrokeThickness = 1.5,
-                OutsideLabelFormat = "{1}: {0}",
-                InsideLabelFormat = null,
-                TickHorizontalLength = 12,
-                TickRadialLength = 8,
-                AngleSpan = 360,
-                StartAngle = 90,
-                TextColor = OxyColors.Black,
-                FontSize = 14,
-                ExplodedDistance = 0
-            };
-
-            // Define custom colors for ownership types with better contrast
-            var ownershipColors = new Dictionary<string, OxyColor>
-    {
-        { "company", OxyColor.Parse("#4CAF50") },  // Material Green
-        { "personal", OxyColor.Parse("#FFA726") }  // Material Orange
-    };
-
-            foreach (var kvp in _cachedOwnershipCounts)
-            {
-                var slice = new PieSlice(kvp.Key, kvp.Value);
-                if (ownershipColors.TryGetValue(kvp.Key.ToLower(), out var color))
+                int colorIndex = 0;
+                foreach (var item in _cachedDeviceTypeCounts)
                 {
-                    slice.Fill = color;
+                    var currentColor = deviceTypeColors[colorIndex % deviceTypeColors.Count];
+
+                    deviceTypesSeries.Add(new PieSeries<double>
+                    {
+                        Values = new double[] { item.Value },
+                        Name = $"{item.Key}: {item.Value}",
+                        Fill = new SolidColorPaint(currentColor),
+                        Stroke = new SolidColorPaint(SKColors.White) { StrokeThickness = 2 },
+                        DataLabelsSize = 14,
+                        DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                        InnerRadius = 50
+                    });
+
+                    colorIndex++;
                 }
-                ownershipPieSeries.Slices.Add(slice);
+
+                DeviceTypesSeries = deviceTypesSeries.ToArray();
+                OnPropertyChanged(nameof(DeviceTypesSeries));
+
+                // Ownership pie chart
+                var ownershipSeries = new List<ISeries>();
+                var ownershipColors = new List<SKColor>
+        {
+            new SKColor(76, 175, 80),   // Company - Material Green
+            new SKColor(255, 167, 38)   // Personal - Material Orange
+        };
+
+                colorIndex = 0;
+                foreach (var item in _cachedOwnershipCounts)
+                {
+                    var currentColor = ownershipColors[colorIndex % ownershipColors.Count];
+
+                    ownershipSeries.Add(new PieSeries<double>
+                    {
+                        Values = new double[] { item.Value },
+                        Name = $"{item.Key}: {item.Value}",
+                        Fill = new SolidColorPaint(currentColor),
+                        Stroke = new SolidColorPaint(SKColors.White) { StrokeThickness = 2 },
+                        DataLabelsSize = 14,
+                        DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                        InnerRadius = 50
+                    });
+
+                    colorIndex++;
+                }
+
+                OwnershipSeries = ownershipSeries.ToArray();
+                OnPropertyChanged(nameof(OwnershipSeries));
             }
-
-            OwnershipPlotModel.Series.Clear();
-            OwnershipPlotModel.Series.Add(ownershipPieSeries);
-
-            // Add legend for ownership chart
-            OwnershipPlotModel.Legends.Add(new Legend
+            catch (Exception ex)
             {
-                LegendPosition = LegendPosition.RightTop,
-                LegendPlacement = LegendPlacement.Inside,
-                LegendMargin = 10,
-                LegendPadding = 8,
-                LegendBackground = OxyColor.FromArgb(220, 255, 255, 255),
-                LegendBorder = OxyColors.Gray,
-                LegendBorderThickness = 1,
-                LegendTextColor = OxyColors.Black
-            });
-
-            OnPropertyChanged(nameof(OwnershipPlotModel));
+                System.Diagnostics.Debug.WriteLine($"Error creating charts: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
+            }
         }
+        private void CreateLiveCharts()
+        {
+            // Device types pie chart
+            var deviceTypesSeries = new List<ISeries>();
+            var deviceTypeColors = new SKColor[]
+            {
+        new SKColor(30, 144, 255),  // Windows - DodgerBlue
+        new SKColor(0, 200, 81),    // MacOS - Green
+        new SKColor(255, 69, 0),    // iOS - OrangeRed
+        new SKColor(76, 175, 80)    // Android - Material Green
+            };
 
+            int colorIndex = 0;
+            foreach (var item in _cachedDeviceTypeCounts)
+            {
+                deviceTypesSeries.Add(new PieSeries<int>
+                {
+                    Values = new[] { item.Value },
+                    Name = $"{item.Key}: {item.Value}",
+                    Fill = new SolidColorPaint(deviceTypeColors[colorIndex % deviceTypeColors.Length]),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer,
+                    DataLabelsFormatter = point => $"{point.Context.Series.Name}",
+                    DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                    DataLabelsSize = 14,
+                    InnerRadius = 50
+                });
+                colorIndex++;
+            }
+
+            DeviceTypesSeries = deviceTypesSeries.ToArray();
+            OnPropertyChanged(nameof(DeviceTypesSeries));
+
+            // Ownership pie chart
+            var ownershipSeries = new List<ISeries>();
+            var ownershipColors = new SKColor[]
+            {
+        new SKColor(76, 175, 80),   // Company - Material Green
+        new SKColor(255, 167, 38)   // Personal - Material Orange
+            };
+
+            colorIndex = 0;
+            foreach (var item in _cachedOwnershipCounts)
+            {
+                ownershipSeries.Add(new PieSeries<int>
+                {
+                    Values = new[] { item.Value },
+                    Name = $"{item.Key}: {item.Value}",
+                    Fill = new SolidColorPaint(ownershipColors[colorIndex % ownershipColors.Length]),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer,
+                    DataLabelsFormatter = point => $"{point.Context.Series.Name}",
+                    DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                    DataLabelsSize = 14,
+                    InnerRadius = 50
+                });
+                colorIndex++;
+            }
+
+            OwnershipSeries = ownershipSeries.ToArray();
+            OnPropertyChanged(nameof(OwnershipSeries));
+        }
         // Update ClearCache method to also clear disk cache
         public void ClearCache()
         {

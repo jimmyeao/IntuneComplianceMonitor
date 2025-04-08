@@ -23,10 +23,10 @@ namespace IntuneComplianceMonitor.Models
 
         // Intune/Graph API credentials
         [JsonPropertyName("intuneClientId")]
-        public string IntuneClientId { get; set; } = "787fff8e-d022-495a-a3ea-d306fc23a134";
+        public string IntuneClientId { get; set; }
 
         [JsonPropertyName("intuneTenantId")]
-        public string IntuneTenantId { get; set; } = "739195a1-f5d6-4d9a-ac42-a1dbb7c7413d";
+        public string IntuneTenantId { get; set; }
 
         // No default for client secret since it's sensitive
         [JsonPropertyName("intuneClientSecret")]

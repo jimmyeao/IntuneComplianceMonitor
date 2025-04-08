@@ -1,7 +1,7 @@
 ﻿<Page x:Class="IntuneComplianceMonitor.Views.DashboardPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:oxy="http://oxyplot.org/wpf"
+      xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
       Title="Dashboard">
 
     <Grid Margin="10">
@@ -79,8 +79,6 @@
                 </Grid>
             </Border>
         </Grid>
-
-        <!-- Chart cards -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -96,13 +94,14 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" 
-                               Text="Devices by Type" 
-                               Style="{StaticResource SectionTitle}" 
-                               HorizontalAlignment="Center"/>
+                           Text="Devices by Type" 
+                           Style="{StaticResource SectionTitle}" 
+                           HorizontalAlignment="Center"/>
 
-                    <oxy:PlotView Grid.Row="1" 
-                                 Model="{Binding DeviceTypePlotModel}" 
-                                 Margin="10"/>
+                    <lvc:PieChart Grid.Row="1"
+                             Series="{Binding DeviceTypesSeries}"
+                             LegendPosition="Right"
+                             Margin="10"/>
                 </Grid>
             </Border>
 
@@ -115,13 +114,14 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" 
-                               Text="Devices by Ownership" 
-                               Style="{StaticResource SectionTitle}" 
-                               HorizontalAlignment="Center"/>
+                           Text="Devices by Ownership" 
+                           Style="{StaticResource SectionTitle}" 
+                           HorizontalAlignment="Center"/>
 
-                    <oxy:PlotView Grid.Row="1" 
-                                 Model="{Binding OwnershipPlotModel}" 
-                                 Margin="10"/>
+                    <lvc:PieChart Grid.Row="1"
+                             Series="{Binding OwnershipSeries}"
+                             LegendPosition="Right"
+                             Margin="10"/>
                 </Grid>
             </Border>
         </Grid>
