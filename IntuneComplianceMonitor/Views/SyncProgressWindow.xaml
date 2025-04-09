@@ -13,7 +13,7 @@
     <Window.Resources>
         <Style x:Key="SyncTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
-            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="TextAlignment" Value="Center"/>
@@ -22,15 +22,15 @@
     </Window.Resources>
 
     <Border CornerRadius="10" 
-            Background="White" 
-            BorderBrush="#DDDDDD" 
+            Background="{StaticResource CardBackgroundBrush}" 
+            BorderBrush="{StaticResource BorderBrush}" 
             BorderThickness="1" 
             Padding="20">
         <Border.Effect>
             <DropShadowEffect Direction="270" 
                               ShadowDepth="8" 
                               BlurRadius="15" 
-                              Opacity="0.2"/>
+                              Opacity="0.4"/>
         </Border.Effect>
 
         <Grid>
@@ -44,6 +44,7 @@
                        Text="Synchronizing with Intune" 
                        FontSize="18" 
                        FontWeight="SemiBold" 
+                       Foreground="{StaticResource TextPrimaryBrush}"
                        HorizontalAlignment="Center" 
                        Margin="0,0,0,20"/>
 
@@ -54,8 +55,8 @@
                              IsIndeterminate="True" 
                              Height="6" 
                              Width="250" 
-                             Foreground="#0078D7" 
-                             Background="#F0F0F0"/>
+                             Foreground="{StaticResource AccentBrush}" 
+                             Background="#444444"/>
 
                 <TextBlock x:Name="StatusMessage" 
                            Text="Retrieving data from Microsoft Intune..." 
@@ -65,7 +66,7 @@
 
             <TextBlock Grid.Row="2" 
                        Text="This may take a few moments." 
-                       Foreground="#666666" 
+                       Foreground="{StaticResource TextSecondaryBrush}" 
                        HorizontalAlignment="Center" 
                        Margin="0,20,0,0"/>
         </Grid>

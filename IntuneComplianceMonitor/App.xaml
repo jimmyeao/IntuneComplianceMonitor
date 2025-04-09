@@ -5,6 +5,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Include the Dark Theme dictionary -->
+                <ResourceDictionary Source="/IntuneComplianceMonitor;component/DarkTheme.xaml"/>
                 <!-- Add the styles dictionary -->
                 <ResourceDictionary Source="/IntuneComplianceMonitor;component/AppStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>

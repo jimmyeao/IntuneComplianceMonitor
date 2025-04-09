@@ -479,20 +479,32 @@ namespace IntuneComplianceMonitor.ViewModels
                 // Device types pie chart
                 var deviceTypesSeries = new List<ISeries>();
 
-                // Define colors for device types - using the same colors as your OxyPlot version
+                // Define consistent colors for device types
                 var deviceTypeColors = new Dictionary<string, SKColor>
         {
             { "windows", new SKColor(30, 144, 255) },  // DodgerBlue
             { "macos", new SKColor(0, 200, 81) },      // Green
-            { "ios", new SKColor(255, 167, 38) },        // Material OrangeRed
+            { "ios", new SKColor(255, 167, 38) },      // Orange
             { "android", new SKColor(76, 175, 80) }    // Material Green
         };
 
-                // Add slices for each device type
+                // For simplified data display, collect values
+                var deviceTypesData = new Dictionary<string, double>();
+
                 foreach (var kvp in DevicesByType)
                 {
+                    string key = kvp.Key.ToLower();
+                    if (deviceTypesData.ContainsKey(key))
+                        deviceTypesData[key] += kvp.Value;
+                    else
+                        deviceTypesData[key] = kvp.Value;
+                }
+
+                // Add slices for each device type
+                foreach (var kvp in deviceTypesData)
+                {
                     SKColor sliceColor;
-                    if (deviceTypeColors.TryGetValue(kvp.Key.ToLower(), out sliceColor))
+                    if (deviceTypeColors.TryGetValue(kvp.Key, out sliceColor))
                     {
                         // Use the custom color
                     }
@@ -505,13 +517,12 @@ namespace IntuneComplianceMonitor.ViewModels
                     deviceTypesSeries.Add(new PieSeries<double>
                     {
                         Values = new double[] { kvp.Value },
-                        Name = $"{kvp.Key}: {kvp.Value}",
+                        Name = kvp.Key,
                         Fill = new SolidColorPaint(sliceColor),
                         Stroke = new SolidColorPaint(SKColors.White) { StrokeThickness = 2 },
                         DataLabelsSize = 14,
-                        DataLabelsPaint = new SolidColorPaint(SKColors.Black),
-                        InnerRadius = 40
-                
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        InnerRadius = 50
                     });
                 }
 
@@ -521,17 +532,29 @@ namespace IntuneComplianceMonitor.ViewModels
                 // Ownership pie chart
                 var ownershipSeries = new List<ISeries>();
 
-                // Define colors for ownership types - using the same colors as your OxyPlot version
+                // Define colors for ownership types
                 var ownershipColors = new Dictionary<string, SKColor>
         {
             { "company", new SKColor(76, 175, 80) },   // Material Green
             { "personal", new SKColor(255, 167, 38) }  // Material Orange
         };
 
+                // For simplified data display, collect values
+                var ownershipData = new Dictionary<string, double>();
+
                 foreach (var kvp in DevicesByOwnership)
                 {
+                    string key = kvp.Key.ToLower();
+                    if (ownershipData.ContainsKey(key))
+                        ownershipData[key] += kvp.Value;
+                    else
+                        ownershipData[key] = kvp.Value;
+                }
+
+                foreach (var kvp in ownershipData)
+                {
                     SKColor sliceColor;
-                    if (ownershipColors.TryGetValue(kvp.Key.ToLower(), out sliceColor))
+                    if (ownershipColors.TryGetValue(kvp.Key, out sliceColor))
                     {
                         // Use the custom color
                     }
@@ -544,12 +567,12 @@ namespace IntuneComplianceMonitor.ViewModels
                     ownershipSeries.Add(new PieSeries<double>
                     {
                         Values = new double[] { kvp.Value },
-                        Name = $"{kvp.Key}: {kvp.Value}",
+                        Name = kvp.Key,
                         Fill = new SolidColorPaint(sliceColor),
                         Stroke = new SolidColorPaint(SKColors.White) { StrokeThickness = 2 },
                         DataLabelsSize = 14,
-                        DataLabelsPaint = new SolidColorPaint(SKColors.Black),
-                        InnerRadius = 40
+                        DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                        InnerRadius = 50
                     });
                 }
 
@@ -562,7 +585,6 @@ namespace IntuneComplianceMonitor.ViewModels
                 System.Diagnostics.Debug.WriteLine(ex.StackTrace);
             }
         }
-       
         private void UpdateCharts()
         {
             try
