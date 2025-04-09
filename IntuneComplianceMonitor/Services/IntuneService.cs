@@ -786,6 +786,49 @@ namespace IntuneComplianceMonitor.Services
             }
             return false;
         }
+        public async Task<Dictionary<string, List<DeviceViewModel>>> GetDevicesGroupedByPolicyAsync(List<DeviceViewModel> devices)
+        {
+            var result = new Dictionary<string, List<DeviceViewModel>>(StringComparer.OrdinalIgnoreCase);
+            var semaphore = new SemaphoreSlim(5); // limit concurrency
+
+            var tasks = devices.Select(async device =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var policyIssues = new List<string>();
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    await GetComplianceIssuesAsync(device.DeviceId, policyIssues, timeout.Token);
+
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        foreach (var issue in policyIssues)
+                        {
+                            var policyName = issue.Split(':')[0]; // "Policy X: Non-compliant" → "Policy X"
+
+                            if (!result.TryGetValue(policyName, out var list))
+                            {
+                                list = new List<DeviceViewModel>();
+                                result[policyName] = list;
+                            }
+
+                            list.Add(device);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error grouping device '{device.DeviceName}': {ex.Message}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+            return result;
+        }
 
         #endregion Methods
     }

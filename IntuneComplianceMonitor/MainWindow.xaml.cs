@@ -136,6 +136,9 @@ namespace IntuneComplianceMonitor
                 default:
                     page = new DashboardPage();
                     break;
+                case "Compliance":
+                    page = new CompliancePolicyPage();
+                    break;
             }
 
             // Always navigate to the new page
