@@ -50,14 +50,14 @@
             <!-- Compliance Tab -->
             <TabItem Header="Compliance">
                 <DataGrid ItemsSource="{Binding PolicyStates}" 
-                          x:Name="ComplianceDataGrid"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True"
-                          GridLinesVisibility="Horizontal"
-                          HeadersVisibility="Column"
-                         
-                          RowHeaderWidth="0"
-                          Margin="10">
+                  x:Name="ComplianceDataGrid"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  MouseDoubleClick="ComplianceDataGrid_MouseDoubleClick"
+                  RowHeaderWidth="0"
+                  Margin="10">
 
                     <DataGrid.Resources>
                         <Style TargetType="DataGridColumnHeader">

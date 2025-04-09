@@ -15,6 +15,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using IntuneComplianceMonitor.ViewModels;
+
 
 namespace IntuneComplianceMonitor.Views
 {
@@ -28,7 +30,7 @@ namespace IntuneComplianceMonitor.Views
         public ObservableCollection<ConfigurationProfileViewModel> ConfigurationProfiles { get; set; } = new();
         public bool IsLoadingProfiles { get; set; }
         public DeviceViewModel Device => _device;
-
+       
         public event PropertyChangedEventHandler PropertyChanged;
 
         public DeviceDetailsWindow(DeviceViewModel device)
@@ -111,6 +113,16 @@ namespace IntuneComplianceMonitor.Views
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        private void ComplianceDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (ComplianceDataGrid.SelectedItem is CompliancePolicyStateViewModel selectedPolicy)
+            {
+                var detailsWindow = new ComplianceDetailsWindow(selectedPolicy, _device);
+
+                detailsWindow.Owner = this;
+                detailsWindow.ShowDialog();
+            }
         }
 
 
