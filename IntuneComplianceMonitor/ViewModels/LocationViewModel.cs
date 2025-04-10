@@ -1,22 +1,34 @@
-﻿using LiveChartsCore.Geo;
-using LiveChartsCore.SkiaSharpView;
+﻿using IntuneComplianceMonitor.Services;
+using Microsoft.Maps.MapControl.WPF;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using IntuneComplianceMonitor.Services;
-using LiveChartsCore.SkiaSharpView.Drawing.Geometries;
 using System.Windows;
+using System.Windows.Media;
 
 namespace IntuneComplianceMonitor.ViewModels
 {
     public class LocationViewModel : INotifyPropertyChanged
     {
-        private HeatLandSeries[] _series;
         private bool _isLoading;
         private string _statusMessage;
+        private Location _mapCenter;
+        private double _zoomLevel;
+        private string _bingMapsKey;
+
+        public LocationViewModel()
+        {
+            // Default map center (0,0) and zoom level
+            MapCenter = new Location(30, 0);
+            ZoomLevel = 2;
+
+            // You can get a free Bing Maps key at https://www.bingmapsportal.com/
+            // For development and testing purposes only
+            BingMapsKey = "AqYfEVmxL6zHsAMqY33Tx4rNQF81oBsSqmWf7pNPl_2tF7W7Lxv2Lkh1DKZWQ7bT";
+        }
 
         public bool IsLoading
         {
@@ -44,20 +56,42 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public HeatLandSeries[] Series
+        public Location MapCenter
         {
-            get => _series;
+            get => _mapCenter;
             set
             {
-                _series = value;
+                _mapCenter = value;
                 OnPropertyChanged();
             }
         }
 
-        public async Task LoadDataAsync(bool forceRefresh = false)
+        public double ZoomLevel
+        {
+            get => _zoomLevel;
+            set
+            {
+                _zoomLevel = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string BingMapsKey
+        {
+            get => _bingMapsKey;
+            set
+            {
+                _bingMapsKey = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public async Task<List<CountryDeviceCount>> LoadDataAsync(bool forceRefresh = false)
         {
             IsLoading = true;
             StatusMessage = "Loading location data...";
+
+            List<CountryDeviceCount> countryData = new List<CountryDeviceCount>();
 
             try
             {
@@ -85,29 +119,9 @@ namespace IntuneComplianceMonitor.ViewModels
                     // Save to location-specific cache
                     devices = nonCompliantDevices;
                     await ServiceManager.Instance.DataCacheService.SaveDeviceLocationCacheAsync(devices);
-
-                    StatusMessage = "Location data ready";
                 }
 
-                CreateMap(devices);
-
-                // Make sure to set loading to false when done
-                IsLoading = false;
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine($"Error loading location data: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
-                IsLoading = false;
-            }
-        }
-
-        private void CreateMap(List<DeviceViewModel> devices)
-        {
-            try
-            {
-                var isoCodeMap = CountryNameToISO3();
+                // Process devices into country counts
                 var countryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 int unknownCount = 0;
 
@@ -134,83 +148,75 @@ namespace IntuneComplianceMonitor.ViewModels
                 }
 
                 // Debug output of country distribution
-                System.Diagnostics.Debug.WriteLine($"Country distribution:");
+                System.Diagnostics.Debug.WriteLine("Country distribution:");
                 foreach (var kvp in countryCounts.OrderByDescending(k => k.Value))
                 {
                     System.Diagnostics.Debug.WriteLine($"  {kvp.Key}: {kvp.Value} devices");
                 }
                 System.Diagnostics.Debug.WriteLine($"  Unknown: {unknownCount} devices");
 
-                // Create heat map lands
-                var heatLands = new List<HeatLand>();
+                // Get coordinates for each country
+                var countryCoordinates = GetCountryCapitalCoordinates();
+
+                // Create country data objects for map display
                 foreach (var countryCount in countryCounts)
                 {
-                    string country = countryCount.Key.ToLowerInvariant();
+                    string countryName = countryCount.Key;
+                    int count = countryCount.Value;
 
-                    // Try to map to ISO3 code
-                    if (isoCodeMap.TryGetValue(country, out string iso3Code))
-                    {
-                        heatLands.Add(new HeatLand
-                        {
-                            Name = iso3Code,
-                            Value = countryCount.Value
-                        });
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Could not find ISO3 code for country: {country}");
+                    // Skip if we don't have coordinates for this countrya
+                    if (!countryCoordinates.TryGetValue(countryName, out var coordinates))
+                        continue;
 
-                        // Try some additional normalization
-                        if (country.Contains("united kingdom") || country.Contains("uk") ||
-                            country.Contains("britain") || country.Contains("england"))
-                        {
-                            heatLands.Add(new HeatLand
-                            {
-                                Name = "gbr",
-                                Value = countryCount.Value
-                            });
-                        }
-                        else if (country.Contains("united states") || country.Contains("usa") ||
-                                 country.Contains("us") || country.Contains("america"))
-                        {
-                            heatLands.Add(new HeatLand
-                            {
-                                Name = "usa",
-                                Value = countryCount.Value
-                            });
-                        }
-                        else if (country.Contains("spain") || country.Contains("españa"))
-                        {
-                            heatLands.Add(new HeatLand
-                            {
-                                Name = "esp",
-                                Value = countryCount.Value
-                            });
-                        }
-                    }
+                    // Create data object
+                    var country = new CountryDeviceCount
+                    {
+                        CountryName = countryName,
+                        Count = count,
+                        Latitude = coordinates.Latitude,
+                        Longitude = coordinates.Longitude,
+                        PushpinColor = GetColorForCount(count)
+                    };
+
+                    countryData.Add(country);
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Created {heatLands.Count} heat map lands from {devices.Count} devices");
-
-                // Create the series with the heat lands
-                Series = new[]
-                {
-                    new HeatLandSeries
-                    {
-                        Lands = heatLands.ToArray()
-                    }
-                };
+                StatusMessage = $"Showing {devices.Count} non-compliant devices across {countryData.Count} countries";
+                return countryData;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error creating map: {ex.Message}");
-                StatusMessage = $"Error creating map: {ex.Message}";
+                StatusMessage = $"Error: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Error loading location data: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
 
                 // Display error message to user
                 Application.Current.Dispatcher.Invoke(() => {
-                    MessageBox.Show($"Error creating map: {ex.Message}", "Map Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Error loading device locations: {ex.Message}",
+                        "Map Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 });
+
+                return new List<CountryDeviceCount>();
             }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        // Get appropriate color based on device count
+        private Color GetColorForCount(int count)
+        {
+            if (count > 100)
+                return Colors.Red;
+            else if (count > 50)
+                return Colors.Orange;
+            else if (count > 20)
+                return Colors.Blue;
+            else if (count > 5)
+                return Colors.LightBlue;
+            else
+                return Colors.Green;
         }
 
         // Helper method to normalize country names
@@ -261,200 +267,65 @@ namespace IntuneComplianceMonitor.ViewModels
             return country;
         }
 
-        private Dictionary<string, string> CountryNameToISO3()
+        // This dictionary contains country names and their latitude/longitude coordinates
+        private Dictionary<string, (double Latitude, double Longitude)> GetCountryCapitalCoordinates()
         {
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            // This is a simplified map of country names to their approximate center coordinates
+            // Format is CountryName -> (Latitude, Longitude)
+            return new Dictionary<string, (double Latitude, double Longitude)>(StringComparer.OrdinalIgnoreCase)
             {
-                ["afghanistan"] = "afg",
-                ["albania"] = "alb",
-                ["algeria"] = "dza",
-                ["american samoa"] = "asm",
-                ["andorra"] = "and",
-                ["angola"] = "ago",
-                ["anguilla"] = "aia",
-                ["antarctica"] = "ata",
-                ["antigua and barbuda"] = "atg",
-                ["argentina"] = "arg",
-                ["armenia"] = "arm",
-                ["aruba"] = "abw",
-                ["australia"] = "aus",
-                ["austria"] = "aut",
-                ["azerbaijan"] = "aze",
-                ["bahamas"] = "bhs",
-                ["bahrain"] = "bhr",
-                ["bangladesh"] = "bgd",
-                ["barbados"] = "brb",
-                ["belarus"] = "blr",
-                ["belgium"] = "bel",
-                ["belize"] = "blz",
-                ["benin"] = "ben",
-                ["bermuda"] = "bmu",
-                ["bhutan"] = "btn",
-                ["bolivia"] = "bol",
-                ["bosnia and herzegovina"] = "bih",
-                ["botswana"] = "bwa",
-                ["brazil"] = "bra",
-                ["brunei"] = "brn",
-                ["bulgaria"] = "bgr",
-                ["burkina faso"] = "bfa",
-                ["burundi"] = "bdi",
-                ["cabo verde"] = "cpv",
-                ["cambodia"] = "khm",
-                ["cameroon"] = "cmr",
-                ["canada"] = "can",
-                ["cape verde"] = "cpv",
-                ["central african republic"] = "caf",
-                ["chad"] = "tcd",
-                ["chile"] = "chl",
-                ["china"] = "chn",
-                ["colombia"] = "col",
-                ["comoros"] = "com",
-                ["congo"] = "cod",
-                ["republic of the congo"] = "cog",
-                ["costa rica"] = "cri",
-                ["croatia"] = "hrv",
-                ["cuba"] = "cub",
-                ["cyprus"] = "cyp",
-                ["czech republic"] = "cze",
-                ["denmark"] = "dnk",
-                ["djibouti"] = "dji",
-                ["dominica"] = "dma",
-                ["dominican republic"] = "dom",
-                ["ecuador"] = "ecu",
-                ["egypt"] = "egy",
-                ["el salvador"] = "slv",
-                ["equatorial guinea"] = "gnq",
-                ["eritrea"] = "eri",
-                ["estonia"] = "est",
-                ["eswatini"] = "swz",
-                ["ethiopia"] = "eth",
-                ["fiji"] = "fji",
-                ["finland"] = "fin",
-                ["france"] = "fra",
-                ["gabon"] = "gab",
-                ["gambia"] = "gmb",
-                ["georgia"] = "geo",
-                ["germany"] = "deu",
-                ["ghana"] = "gha",
-                ["greece"] = "grc",
-                ["greenland"] = "grl",
-                ["guatemala"] = "gtm",
-                ["guinea"] = "gin",
-                ["guinea-bissau"] = "gnb",
-                ["guyana"] = "guy",
-                ["haiti"] = "hti",
-                ["honduras"] = "hnd",
-                ["hungary"] = "hun",
-                ["iceland"] = "isl",
-                ["india"] = "ind",
-                ["indonesia"] = "idn",
-                ["iran"] = "irn",
-                ["iraq"] = "irq",
-                ["ireland"] = "irl",
-                ["israel"] = "isr",
-                ["italy"] = "ita",
-                ["ivory coast"] = "civ",
-                ["jamaica"] = "jam",
-                ["japan"] = "jpn",
-                ["jordan"] = "jor",
-                ["kazakhstan"] = "kaz",
-                ["kenya"] = "ken",
-                ["korea"] = "kor",
-                ["south korea"] = "kor",
-                ["north korea"] = "prk",
-                ["kosovo"] = "xkx",
-                ["kuwait"] = "kwt",
-                ["kyrgyzstan"] = "kgz",
-                ["laos"] = "lao",
-                ["latvia"] = "lva",
-                ["lebanon"] = "lbn",
-                ["lesotho"] = "lso",
-                ["liberia"] = "lbr",
-                ["libya"] = "lby",
-                ["liechtenstein"] = "lie",
-                ["lithuania"] = "ltu",
-                ["luxembourg"] = "lux",
-                ["madagascar"] = "mdg",
-                ["malawi"] = "mwi",
-                ["malaysia"] = "mys",
-                ["maldives"] = "mdv",
-                ["mali"] = "mli",
-                ["malta"] = "mlt",
-                ["mauritania"] = "mrt",
-                ["mauritius"] = "mus",
-                ["mexico"] = "mex",
-                ["moldova"] = "mda",
-                ["monaco"] = "mco",
-                ["mongolia"] = "mng",
-                ["montenegro"] = "mne",
-                ["morocco"] = "mar",
-                ["mozambique"] = "moz",
-                ["myanmar"] = "mmr",
-                ["namibia"] = "nam",
-                ["nepal"] = "npl",
-                ["netherlands"] = "nld",
-                ["new zealand"] = "nzl",
-                ["nicaragua"] = "nic",
-                ["niger"] = "ner",
-                ["nigeria"] = "nga",
-                ["north macedonia"] = "mkd",
-                ["norway"] = "nor",
-                ["oman"] = "omn",
-                ["pakistan"] = "pak",
-                ["palestine"] = "pse",
-                ["panama"] = "pan",
-                ["papua new guinea"] = "png",
-                ["paraguay"] = "pry",
-                ["peru"] = "per",
-                ["philippines"] = "phl",
-                ["poland"] = "pol",
-                ["portugal"] = "prt",
-                ["qatar"] = "qat",
-                ["romania"] = "rou",
-                ["russia"] = "rus",
-                ["rwanda"] = "rwa",
-                ["saudi arabia"] = "sau",
-                ["senegal"] = "sen",
-                ["serbia"] = "srb",
-                ["singapore"] = "sgp",
-                ["slovakia"] = "svk",
-                ["slovenia"] = "svn",
-                ["somalia"] = "som",
-                ["south africa"] = "zaf",
-                ["south sudan"] = "ssd",
-                ["sri lanka"] = "lka",
-                ["sudan"] = "sdn",
-                ["suriname"] = "sur",
-                ["sweden"] = "swe",
-                ["switzerland"] = "che",
-                ["syria"] = "syr",
-                ["taiwan"] = "twn",
-                ["tajikistan"] = "tjk",
-                ["tanzania"] = "tza",
-                ["thailand"] = "tha",
-                ["timor-leste"] = "tls",
-                ["togo"] = "tgo",
-                ["trinidad and tobago"] = "tto",
-                ["tunisia"] = "tun",
-                ["turkey"] = "tur",
-                ["turkmenistan"] = "tkm",
-                ["uganda"] = "uga",
-                ["ukraine"] = "ukr",
-                ["united arab emirates"] = "are",
-                ["united kingdom"] = "gbr",
-                ["united states"] = "usa",
-                ["uruguay"] = "ury",
-                ["uzbekistan"] = "uzb",
-                ["venezuela"] = "ven",
-                ["vietnam"] = "vnm",
-                ["yemen"] = "yem",
-                ["zambia"] = "zmb",
-                ["zimbabwe"] = "zwe",
-
-                // Add missing countries from the error
-                ["spain"] = "esp",
-                ["españa"] = "esp",
-                ["gb"] = "gbr" // ISO3 code for United Kingdom
+                // Major regions your data shows
+                { "United Kingdom", (51.5074, -0.1278) },    // London
+                { "Romania", (44.4268, 26.1025) },           // Bucharest
+                { "United States", (38.8951, -77.0364) },    // Washington DC
+                { "Malaysia", (3.1390, 101.6869) },          // Kuala Lumpur
+                { "Vietnam", (21.0285, 105.8342) },          // Hanoi
+                { "Ireland", (53.3498, -6.2603) },           // Dublin
+                { "India", (28.6139, 77.2090) },             // New Delhi
+                { "Australia", (-35.2809, 149.1300) },       // Canberra
+                { "New Zealand", (-41.2865, 174.7762) },     // Wellington
+                { "Spain", (40.4168, -3.7038) },             // Madrid
+                { "Denmark", (55.6761, 12.5683) },           // Copenhagen
+                { "Tunisia", (36.8065, 10.1815) },           // Tunis
+                { "Germany", (52.5200, 13.4050) },           // Berlin
+                { "Singapore", (1.3521, 103.8198) },         // Singapore
+                { "Brazil", (-15.7801, -47.9292) },          // Brasília
+                { "Sri Lanka", (6.9271, 79.8612) },          // Colombo
+                { "Sweden", (59.3293, 18.0686) },            // Stockholm
+                { "France", (48.8566, 2.3522) },             // Paris
+                { "Portugal", (38.7223, -9.1393) },          // Lisbon
+                { "Poland", (52.2297, 21.0122) },            // Warsaw
+                
+                // Add more countries as needed
+                { "Canada", (45.4215, -75.6972) },           // Ottawa
+                { "Mexico", (19.4326, -99.1332) },           // Mexico City
+                { "Italy", (41.9028, 12.4964) },             // Rome
+                { "China", (39.9042, 116.4074) },            // Beijing
+                { "Japan", (35.6895, 139.6917) },            // Tokyo
+                { "South Korea", (37.5665, 126.9780) },      // Seoul
+                { "Russia", (55.7558, 37.6173) },            // Moscow
+                { "South Africa", (-26.2041, 28.0473) },     // Johannesburg
+                { "Netherlands", (52.3676, 4.9041) },        // Amsterdam
+                { "Belgium", (50.8503, 4.3517) },            // Brussels
+                { "Switzerland", (46.9480, 7.4474) },        // Bern
+                { "Austria", (48.2082, 16.3738) },           // Vienna
+                { "Norway", (59.9139, 10.7522) },            // Oslo
+                { "Finland", (60.1699, 24.9384) },           // Helsinki
+                { "Greece", (37.9838, 23.7275) },            // Athens
+                { "Turkey", (39.9334, 32.8597) },            // Ankara
+                { "UAE", (24.4539, 54.3773) },               // Abu Dhabi
+                { "Saudi Arabia", (24.6877, 46.7219) },      // Riyadh
+                { "Israel", (31.7683, 35.2137) },            // Jerusalem
+                { "Argentina", (-34.6037, -58.3816) },       // Buenos Aires
+                { "Chile", (-33.4489, -70.6693) },           // Santiago
+                { "Colombia", (4.7110, -74.0721) },          // Bogotá
+                { "Peru", (-12.0464, -77.0428) },            // Lima
+                { "Indonesia", (-6.2088, 106.8456) },        // Jakarta
+                { "Thailand", (13.7563, 100.5018) },         // Bangkok
+                { "Philippines", (14.5995, 120.9842) },      // Manila
+                { "Egypt", (30.0444, 31.2357) },             // Cairo
+                { "Nigeria", (9.0765, 7.3986) },             // Abuja
+                { "Kenya", (-1.2921, 36.8219) }              // Nairobi
             };
         }
 
@@ -463,5 +334,15 @@ namespace IntuneComplianceMonitor.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
+    }
+
+    // Class to hold country device count data
+    public class CountryDeviceCount
+    {
+        public string CountryName { get; set; }
+        public int Count { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public Color PushpinColor { get; set; }
     }
 }

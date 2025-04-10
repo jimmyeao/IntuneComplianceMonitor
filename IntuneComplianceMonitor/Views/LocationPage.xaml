@@ -1,11 +1,19 @@
 ﻿<Page x:Class="IntuneComplianceMonitor.Views.LocationPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
-      xmlns:local="clr-namespace:IntuneComplianceMonitor.Views"
-      xmlns:vm="clr-namespace:IntuneComplianceMonitor.ViewModels"
+      xmlns:m="clr-namespace:Microsoft.Maps.MapControl.WPF;assembly=Microsoft.Maps.MapControl.WPF"
       Title="Device Locations">
-
+    <Page.Resources>
+        <!-- Custom tooltip style for better visibility -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#666666"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="HasDropShadow" Value="True"/>
+        </Style>
+    </Page.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -24,15 +32,14 @@
                        FontSize="18" FontWeight="Bold" Foreground="White" 
                        VerticalAlignment="Center"/>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button Content="Refresh Data" 
-                        Click="Refresh_Click" 
-                        Padding="10,5" 
-                        Margin="0,0,0,0"
-                        Background="#0078D7"
-                        Foreground="White"
-                        BorderThickness="0"/>
-            </StackPanel>
+            <Button Grid.Column="1" 
+                    Content="Refresh Data" 
+                    Click="Refresh_Click" 
+                    Padding="10,5" 
+                    Margin="0,0,0,0"
+                    Background="#0078D7"
+                    Foreground="White"
+                    BorderThickness="0"/>
         </Grid>
 
         <!-- Main Map -->
@@ -41,7 +48,7 @@
                 BorderBrush="#444444" 
                 BorderThickness="1" 
                 CornerRadius="8" 
-                Padding="15">
+                Padding="5">
             <Grid>
                 <!-- Progress overlay -->
                 <Border Background="#88000000" 
@@ -59,13 +66,22 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Map -->
-                <lvc:GeoMap Series="{Binding Series}"  
-           MapProjection="Mercator">
-                    <lvc:GeoMap.Background>
-                        <SolidColorBrush Color="#2D2D30"/>
-                    </lvc:GeoMap.Background>
-                </lvc:GeoMap>
+                <!-- Bing Maps Map Control -->
+                <m:Map x:Name="MyMap" 
+                       CredentialsProvider="{Binding BingMapsKey}"
+                       Center="{Binding MapCenter}" 
+                       ZoomLevel="{Binding ZoomLevel}"
+                       Mode="AerialWithLabels">
+
+                    <!-- Device Pushpins are added in code behind -->
+
+                </m:Map>
+
+                <!-- Zoom controls -->
+                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0">
+                    <Button Content="+" Click="ZoomIn_Click" Width="30" Height="30" Margin="0,0,0,5"/>
+                    <Button Content="-" Click="ZoomOut_Click" Width="30" Height="30"/>
+                </StackPanel>
             </Grid>
         </Border>
 
