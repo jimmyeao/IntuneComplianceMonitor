@@ -165,6 +165,12 @@ namespace IntuneComplianceMonitor.Services
         {
             try
             {
+                // Create cache directory if it doesn't exist
+                if (!Directory.Exists(CacheDirectory))
+                {
+                    Directory.CreateDirectory(CacheDirectory);
+                }
+
                 var data = new DeviceLocationCacheData
                 {
                     Devices = devices,
@@ -213,17 +219,25 @@ namespace IntuneComplianceMonitor.Services
             try
             {
                 string path = Path.Combine(CacheDirectory, LocationCacheFile);
-                if (!File.Exists(path)) return null;
+
+                // If cache file doesn't exist, return null
+                if (!File.Exists(path))
+                {
+                    System.Diagnostics.Debug.WriteLine("Location cache file does not exist");
+                    return null;
+                }
 
                 string json = await File.ReadAllTextAsync(path);
                 var data = JsonSerializer.Deserialize<DeviceLocationCacheData>(json);
 
-                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(24))
+                // Check if cache is expired (24 hours)
+                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(CacheExpiryHours))
                 {
                     System.Diagnostics.Debug.WriteLine("Location cache expired");
                     return null;
                 }
 
+                System.Diagnostics.Debug.WriteLine($"Loaded {data.Devices.Count} devices from location cache");
                 return data.Devices;
             }
             catch (Exception ex)
@@ -232,6 +246,7 @@ namespace IntuneComplianceMonitor.Services
                 return null;
             }
         }
+
         public void ClearDeviceLocationCache()
         {
             try

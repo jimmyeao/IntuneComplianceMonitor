@@ -10,15 +10,90 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="Device Count by Country" FontSize="16" FontWeight="Bold" Foreground="White" Margin="0,0,20,0"/>
-            <Button Content="Refresh" Click="Refresh_Click" Padding="10,5" Margin="10,0,0,0"/>
-        </StackPanel>
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-        <lvc:GeoMap Grid.Row="1"
-                    Series="{Binding MapSeries}"
-                    />
+            <TextBlock Grid.Column="0" Text="Non-Compliant Devices by Country" 
+                       FontSize="18" FontWeight="Bold" Foreground="White" 
+                       VerticalAlignment="Center"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Refresh Data" 
+                        Click="Refresh_Click" 
+                        Padding="10,5" 
+                        Margin="0,0,0,0"
+                        Background="#0078D7"
+                        Foreground="White"
+                        BorderThickness="0"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Map -->
+        <Border Grid.Row="1" 
+                Background="#333337" 
+                BorderBrush="#444444" 
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="15">
+            <Grid>
+                <!-- Progress overlay -->
+                <Border Background="#88000000" 
+                        Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="Loading location data..." 
+                                   Foreground="White" 
+                                   FontSize="16" 
+                                   HorizontalAlignment="Center" 
+                                   Margin="0,0,0,10"/>
+                        <ProgressBar Width="200" 
+                                     Height="10" 
+                                     IsIndeterminate="True" 
+                                     Foreground="#0078D7"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Map -->
+                <lvc:GeoMap Series="{Binding Series}"  
+           MapProjection="Mercator">
+                    <lvc:GeoMap.Background>
+                        <SolidColorBrush Color="#2D2D30"/>
+                    </lvc:GeoMap.Background>
+                </lvc:GeoMap>
+            </Grid>
+        </Border>
+
+        <!-- Status Footer -->
+        <Border Grid.Row="2" 
+                Background="#333337" 
+                BorderBrush="#444444" 
+                BorderThickness="1" 
+                CornerRadius="4" 
+                Padding="10" 
+                Margin="0,10,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" 
+                           Text="{Binding StatusMessage}" 
+                           Foreground="White"/>
+
+                <ProgressBar Grid.Column="1" 
+                             Width="100" 
+                             Height="10" 
+                             IsIndeterminate="{Binding IsLoading}" 
+                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}" 
+                             Margin="10,0,0,0"/>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

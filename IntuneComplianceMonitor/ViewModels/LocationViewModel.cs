@@ -8,12 +8,42 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using IntuneComplianceMonitor.Services;
 using LiveChartsCore.SkiaSharpView.Drawing.Geometries;
+using System.Windows;
 
 namespace IntuneComplianceMonitor.ViewModels
 {
     public class LocationViewModel : INotifyPropertyChanged
     {
         private HeatLandSeries[] _series;
+        private bool _isLoading;
+        private string _statusMessage;
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                if (_isLoading != value)
+                {
+                    _isLoading = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            set
+            {
+                if (_statusMessage != value)
+                {
+                    _statusMessage = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public HeatLandSeries[] Series
         {
             get => _series;
@@ -26,61 +56,209 @@ namespace IntuneComplianceMonitor.ViewModels
 
         public async Task LoadDataAsync(bool forceRefresh = false)
         {
-            var devices = await ServiceManager.Instance.DataCacheService.GetDeviceLocationCacheAsync();
-            if (forceRefresh || devices == null)
-            {
-                var (nonCompliantDevices, _) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
-                await ServiceManager.Instance.IntuneService.EnrichDevicesWithUserLocationAsync(nonCompliantDevices);
-                devices = nonCompliantDevices;
-                await ServiceManager.Instance.DataCacheService.SaveDeviceLocationCacheAsync(devices);
-            }
+            IsLoading = true;
+            StatusMessage = "Loading location data...";
 
-            var isoCodeMap = CountryNameToISO3();
-
-            // Try to infer countries if missing
-            foreach (var device in devices)
+            try
             {
-                if (string.IsNullOrWhiteSpace(device.Country))
+                // Step 1: Try to load from location-specific cache
+                var devices = await ServiceManager.Instance.DataCacheService.GetDeviceLocationCacheAsync();
+
+                // Step 2: If cache is empty or we're forcing refresh, load fresh data
+                if (forceRefresh || devices == null || !devices.Any())
                 {
-                    if (device.DeviceName?.Contains("-UK", StringComparison.OrdinalIgnoreCase) == true)
-                        device.Country = "united kingdom";
-                    else if (device.DeviceName?.Contains("-US", StringComparison.OrdinalIgnoreCase) == true)
-                        device.Country = "united states";
+                    StatusMessage = "Fetching device location data...";
+
+                    // Clear location cache if forcing refresh
+                    if (forceRefresh)
+                    {
+                        ServiceManager.Instance.DataCacheService.ClearDeviceLocationCache();
+                    }
+
+                    // Get non-compliant devices
+                    var (nonCompliantDevices, _) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
+
+                    // Enrich with location data
+                    StatusMessage = "Enriching with location data...";
+                    await ServiceManager.Instance.IntuneService.EnrichDevicesWithUserLocationAsync(nonCompliantDevices);
+
+                    // Save to location-specific cache
+                    devices = nonCompliantDevices;
+                    await ServiceManager.Instance.DataCacheService.SaveDeviceLocationCacheAsync(devices);
+
+                    StatusMessage = "Location data ready";
+                }
+
+                CreateMap(devices);
+
+                // Make sure to set loading to false when done
+                IsLoading = false;
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Error loading location data: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
+                IsLoading = false;
+            }
+        }
+
+        private void CreateMap(List<DeviceViewModel> devices)
+        {
+            try
+            {
+                var isoCodeMap = CountryNameToISO3();
+                var countryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                int unknownCount = 0;
+
+                // Normalize and count all countries
+                foreach (var device in devices)
+                {
+                    // Normalize country names
+                    var normalizedCountry = NormalizeCountryName(device.Country);
+                    device.Country = normalizedCountry;
+
+                    // Count occurrences of each country
+                    if (!string.IsNullOrWhiteSpace(normalizedCountry) &&
+                        normalizedCountry.ToLowerInvariant() != "unknown")
+                    {
+                        if (countryCounts.ContainsKey(normalizedCountry))
+                            countryCounts[normalizedCountry]++;
+                        else
+                            countryCounts[normalizedCountry] = 1;
+                    }
                     else
-                        device.Country = "unknown";
+                    {
+                        unknownCount++;
+                    }
                 }
+
+                // Debug output of country distribution
+                System.Diagnostics.Debug.WriteLine($"Country distribution:");
+                foreach (var kvp in countryCounts.OrderByDescending(k => k.Value))
+                {
+                    System.Diagnostics.Debug.WriteLine($"  {kvp.Key}: {kvp.Value} devices");
+                }
+                System.Diagnostics.Debug.WriteLine($"  Unknown: {unknownCount} devices");
+
+                // Create heat map lands
+                var heatLands = new List<HeatLand>();
+                foreach (var countryCount in countryCounts)
+                {
+                    string country = countryCount.Key.ToLowerInvariant();
+
+                    // Try to map to ISO3 code
+                    if (isoCodeMap.TryGetValue(country, out string iso3Code))
+                    {
+                        heatLands.Add(new HeatLand
+                        {
+                            Name = iso3Code,
+                            Value = countryCount.Value
+                        });
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Could not find ISO3 code for country: {country}");
+
+                        // Try some additional normalization
+                        if (country.Contains("united kingdom") || country.Contains("uk") ||
+                            country.Contains("britain") || country.Contains("england"))
+                        {
+                            heatLands.Add(new HeatLand
+                            {
+                                Name = "gbr",
+                                Value = countryCount.Value
+                            });
+                        }
+                        else if (country.Contains("united states") || country.Contains("usa") ||
+                                 country.Contains("us") || country.Contains("america"))
+                        {
+                            heatLands.Add(new HeatLand
+                            {
+                                Name = "usa",
+                                Value = countryCount.Value
+                            });
+                        }
+                        else if (country.Contains("spain") || country.Contains("españa"))
+                        {
+                            heatLands.Add(new HeatLand
+                            {
+                                Name = "esp",
+                                Value = countryCount.Value
+                            });
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Created {heatLands.Count} heat map lands from {devices.Count} devices");
+
+                // Create the series with the heat lands
+                Series = new[]
+                {
+                    new HeatLandSeries
+                    {
+                        Lands = heatLands.ToArray()
+                    }
+                };
             }
-
-            // Debug all country assignments
-            foreach (var d in devices)
-                System.Diagnostics.Debug.WriteLine($"{d.DeviceName} → '{d.Country}'");
-
-            var grouped = devices
-                .Where(d => !string.IsNullOrWhiteSpace(d.Country))
-                .GroupBy(d => d.Country.ToLowerInvariant())
-                .Select(g => new
-                {
-                    Country = g.Key,
-                    Count = g.Count()
-                })
-                .Where(g => isoCodeMap.ContainsKey(g.Country))
-                .Select(g => new HeatLand
-                {
-                    Name = isoCodeMap[g.Country],
-                    Value = g.Count
-                })
-                .ToArray();
-
-            System.Diagnostics.Debug.WriteLine($"Mapped countries: {grouped.Length}, Total devices: {devices.Count}");
-
-            Series = new[]
+            catch (Exception ex)
             {
-                new HeatLandSeries
-                {
-                    Lands = grouped,
-                   
-                }
+                System.Diagnostics.Debug.WriteLine($"Error creating map: {ex.Message}");
+                StatusMessage = $"Error creating map: {ex.Message}";
+
+                // Display error message to user
+                Application.Current.Dispatcher.Invoke(() => {
+                    MessageBox.Show($"Error creating map: {ex.Message}", "Map Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+            }
+        }
+
+        // Helper method to normalize country names
+        private string NormalizeCountryName(string country)
+        {
+            if (string.IsNullOrWhiteSpace(country))
+                return "Unknown";
+
+            country = country.Trim();
+
+            // Map common variations to standardized names
+            var countryMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "UK", "United Kingdom" },
+                { "Great Britain", "United Kingdom" },
+                { "England", "United Kingdom" },
+                { "Scotland", "United Kingdom" },
+                { "Wales", "United Kingdom" },
+                { "Northern Ireland", "United Kingdom" },
+                { "Britain", "United Kingdom" },
+                { "GB", "United Kingdom" },
+
+                { "USA", "United States" },
+                { "US", "United States" },
+                { "U.S.A.", "United States" },
+                { "U.S.", "United States" },
+                { "America", "United States" },
+                { "United States of America", "United States" },
+
+                { "UAE", "United Arab Emirates" },
+                { "ROI", "Ireland" },
+                { "Republic of Ireland", "Ireland" },
+                { "Holland", "Netherlands" },
+                { "RSA", "South Africa" },
+                { "Brasil", "Brazil" },
+                { "Nueva Zealand", "New Zealand" },
+                { "Deutschland", "Germany" },
+                { "España", "Spain" },
+                { "Sverige", "Sweden" },
+                { "Norge", "Norway" },
+                { "Danmark", "Denmark" },
+                { "Suomi", "Finland" }
             };
+
+            if (countryMappings.TryGetValue(country, out var normalizedName))
+                return normalizedName;
+
+            return country;
         }
 
         private Dictionary<string, string> CountryNameToISO3()
@@ -271,10 +449,14 @@ namespace IntuneComplianceMonitor.ViewModels
                 ["vietnam"] = "vnm",
                 ["yemen"] = "yem",
                 ["zambia"] = "zmb",
-                ["zimbabwe"] = "zwe"
+                ["zimbabwe"] = "zwe",
+
+                // Add missing countries from the error
+                ["spain"] = "esp",
+                ["españa"] = "esp",
+                ["gb"] = "gbr" // ISO3 code for United Kingdom
             };
         }
-
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string name = null)

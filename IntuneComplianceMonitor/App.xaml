@@ -10,7 +10,7 @@
                 <!-- Add the styles dictionary -->
                 <ResourceDictionary Source="/IntuneComplianceMonitor;component/AppStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-           
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         </ResourceDictionary>
 
     </Application.Resources>
