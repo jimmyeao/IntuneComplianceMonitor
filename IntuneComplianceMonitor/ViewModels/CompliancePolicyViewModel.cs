@@ -13,6 +13,19 @@ namespace IntuneComplianceMonitor.ViewModels
         private Dictionary<string, List<DeviceViewModel>> _groupedData;
         private string _selectedPolicy;
         private string _searchText;
+        private bool _isLoading;
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                if (_isLoading != value)
+                {
+                    _isLoading = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public CompliancePolicyViewModel()
         {
@@ -20,6 +33,7 @@ namespace IntuneComplianceMonitor.ViewModels
             Devices = new ObservableCollection<DeviceViewModel>();
             LoadDataCommand = new RelayCommand(_ => LoadData());
             ApplyFiltersCommand = new RelayCommand(_ => ApplyFilters());
+            LoadData(); // 👈 THIS is what was missing
         }
 
         public ObservableCollection<string> Policies { get; }
@@ -59,18 +73,43 @@ namespace IntuneComplianceMonitor.ViewModels
         protected virtual void OnPropertyChanged([CallerMemberName] string propName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
 
-        public async void LoadData()
+        public async Task LoadData()
         {
-            Devices.Clear();
-            Policies.Clear();
-            var allDevices = await ServiceManager.Instance.SampleDataService.GetDevicesAsync(); // or IntuneService.GetNonCompliantDevicesAsync
-            _groupedData = await ServiceManager.Instance.IntuneService.GetDevicesGroupedByPolicyAsync(allDevices);
+            IsLoading = true;
 
-            foreach (var policy in _groupedData.Keys.OrderBy(k => k))
-                Policies.Add(policy);
+            try
+            {
+                // Try cache first
+                var cached = await ServiceManager.Instance.DataCacheService.GetCompliancePoliciesFromCacheAsync();
+                if (cached != null)
+                {
+                    _groupedData = cached;
+                    foreach (var policy in _groupedData.Keys.OrderBy(k => k))
+                        Policies.Add(policy);
+                    SelectedPolicy = Policies.FirstOrDefault();
+                    return;
+                }
 
-            SelectedPolicy = Policies.FirstOrDefault();
+                // Else fetch and cache
+                var (allDevices, _) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
+                var grouped = await ServiceManager.Instance.IntuneService.GetDevicesGroupedByPolicyAsync(allDevices);
+
+                _groupedData = grouped;
+                await ServiceManager.Instance.DataCacheService.SaveCompliancePoliciesToCacheAsync(grouped);
+
+                foreach (var policy in _groupedData.Keys.OrderBy(k => k))
+                    Policies.Add(policy);
+                SelectedPolicy = Policies.FirstOrDefault();
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
+
+
+
+
 
         private void ApplyFilters()
         {

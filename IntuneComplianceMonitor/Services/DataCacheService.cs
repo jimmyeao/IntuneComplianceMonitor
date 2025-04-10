@@ -47,6 +47,62 @@ namespace IntuneComplianceMonitor.Services
                 System.Diagnostics.Debug.WriteLine($"Error saving devices to cache: {ex.Message}");
             }
         }
+        private const string CompliancePolicyCacheFile = "compliancePolicies.json";
+
+        public async Task SaveCompliancePoliciesToCacheAsync(Dictionary<string, List<DeviceViewModel>> groupedData)
+        {
+            try
+            {
+                var data = new CompliancePolicyCacheData
+                {
+                    GroupedData = groupedData,
+                    CacheTime = DateTime.Now
+                };
+
+                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, CompliancePolicyCacheFile), json);
+                System.Diagnostics.Debug.WriteLine("Saved compliance policy data to cache");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving compliance policy cache: {ex.Message}");
+            }
+        }
+
+        public async Task<Dictionary<string, List<DeviceViewModel>>> GetCompliancePoliciesFromCacheAsync()
+        {
+            try
+            {
+                string path = Path.Combine(CacheDirectory, CompliancePolicyCacheFile);
+                if (!File.Exists(path)) return null;
+
+                var json = await File.ReadAllTextAsync(path);
+                var data = JsonSerializer.Deserialize<CompliancePolicyCacheData>(json);
+
+                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(24))
+                {
+                    System.Diagnostics.Debug.WriteLine("Compliance policy cache expired");
+                    return null;
+                }
+
+                return data.GroupedData;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading compliance policy cache: {ex.Message}");
+                return null;
+            }
+        }
+
+        public class CompliancePolicyCacheData
+        {
+            public Dictionary<string, List<DeviceViewModel>> GroupedData { get; set; }
+            public DateTime CacheTime { get; set; }
+        }
 
         public async Task<List<DeviceViewModel>> GetDevicesFromCacheAsync()
         {

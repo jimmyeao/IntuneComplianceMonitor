@@ -10,6 +10,7 @@ using System.Windows;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Identity.Client.Desktop;
 using System.Collections.Concurrent;
+using Application = System.Windows.Application;
 
 namespace IntuneComplianceMonitor.Services
 {
@@ -558,7 +559,7 @@ namespace IntuneComplianceMonitor.Services
                         SerialNumber = device.SerialNumber,
                         Manufacturer = device.Manufacturer,
                         Model = device.Model,
-                        ComplianceIssues = new List<string> { "Loading..." }
+                        ComplianceIssues = new List<string> { "Uncompliant" }
                     };
 
                     result.Add(vm);
@@ -789,36 +790,48 @@ namespace IntuneComplianceMonitor.Services
         public async Task<Dictionary<string, List<DeviceViewModel>>> GetDevicesGroupedByPolicyAsync(List<DeviceViewModel> devices)
         {
             var result = new Dictionary<string, List<DeviceViewModel>>(StringComparer.OrdinalIgnoreCase);
-            var semaphore = new SemaphoreSlim(5); // limit concurrency
+            var semaphore = new SemaphoreSlim(5); // control parallelism
 
             var tasks = devices.Select(async device =>
             {
                 await semaphore.WaitAsync();
                 try
                 {
-                    var policyIssues = new List<string>();
-                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                    await GetComplianceIssuesAsync(device.DeviceId, policyIssues, timeout.Token);
+                    var policyStates = await _graphClient.DeviceManagement.ManagedDevices[device.DeviceId]
+                        .DeviceCompliancePolicyStates
+                        .GetAsync();
 
-                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    if (policyStates?.Value != null)
                     {
-                        foreach (var issue in policyIssues)
+                        foreach (var policyState in policyStates.Value)
                         {
-                            var policyName = issue.Split(':')[0]; // "Policy X: Non-compliant" → "Policy X"
+                            if (policyState.State != Microsoft.Graph.Models.ComplianceStatus.NonCompliant)
+                                continue;
 
-                            if (!result.TryGetValue(policyName, out var list))
+                            var policyName = policyState.DisplayName ?? "Unknown Policy";
+
+                            lock (result)
                             {
-                                list = new List<DeviceViewModel>();
-                                result[policyName] = list;
+                                if (!result.TryGetValue(policyName, out var list))
+                                {
+                                    list = new List<DeviceViewModel>();
+                                    result[policyName] = list;
+                                }
+
+                                list.Add(device);
                             }
 
-                            list.Add(device);
+                            // Update device compliance issues inline
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                device.ComplianceIssues.Add(policyName);
+                            });
                         }
-                    });
+                    }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error grouping device '{device.DeviceName}': {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Policy fetch error for {device.DeviceName}: {ex.Message}");
                 }
                 finally
                 {
@@ -829,6 +842,7 @@ namespace IntuneComplianceMonitor.Services
             await Task.WhenAll(tasks);
             return result;
         }
+
 
         #endregion Methods
     }

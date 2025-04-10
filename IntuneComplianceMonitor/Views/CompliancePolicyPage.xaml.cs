@@ -10,7 +10,34 @@ namespace IntuneComplianceMonitor.Views
         public CompliancePolicyPage()
         {
             InitializeComponent();
-            DataContext = new ViewModels.CompliancePolicyViewModel();
+            Loaded += CompliancePolicyPage_Loaded;
+        }
+
+        private async void CompliancePolicyPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            var viewModel = new CompliancePolicyViewModel();
+            DataContext = viewModel;
+
+            var loadingWindow = new LoadingWindow
+            {
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+
+            loadingWindow.Show();
+
+            try
+            {
+                await viewModel.LoadData();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load compliance data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                loadingWindow.Close();
+            }
         }
     }
+
 }
