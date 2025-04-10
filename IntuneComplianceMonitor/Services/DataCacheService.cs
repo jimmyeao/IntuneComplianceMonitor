@@ -10,10 +10,19 @@ namespace IntuneComplianceMonitor.Services
 {
     public class DataCacheService
     {
+        #region Fields
+
         private const string CacheDirectory = "Cache";
+        private const int CacheExpiryHours = 24;
+        private const string CompliancePolicyCacheFile = "compliancePolicies.json";
         private const string DevicesCacheFile = "devices.json";
         private const string StatsCacheFile = "stats.json";
-        private const int CacheExpiryHours = 24; // Cache expires after 24 hours
+
+        #endregion Fields
+
+        // Cache expires after 24 hours
+
+        #region Constructors
 
         public DataCacheService()
         {
@@ -24,52 +33,43 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
-        public async Task SaveDevicesToCacheAsync(List<DeviceViewModel> devices)
+        #endregion Constructors
+
+        #region Methods
+
+        public void ClearCache()
         {
             try
             {
-                var cacheData = new DevicesCacheData
+                if (Directory.Exists(CacheDirectory))
                 {
-                    Devices = devices,
-                    CacheTime = DateTime.Now
-                };
-
-                string json = JsonSerializer.Serialize(cacheData, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, DevicesCacheFile), json);
-                System.Diagnostics.Debug.WriteLine($"Saved {devices.Count} devices to cache");
+                    foreach (var file in Directory.GetFiles(CacheDirectory))
+                    {
+                        File.Delete(file);
+                    }
+                    System.Diagnostics.Debug.WriteLine("Cache cleared");
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving devices to cache: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error clearing cache: {ex.Message}");
             }
         }
-        private const string CompliancePolicyCacheFile = "compliancePolicies.json";
 
-        public async Task SaveCompliancePoliciesToCacheAsync(Dictionary<string, List<DeviceViewModel>> groupedData)
+        public void ClearCompliancePolicyCache()
         {
             try
             {
-                var data = new CompliancePolicyCacheData
+                string path = Path.Combine(CacheDirectory, "compliancePolicies.json");
+                if (File.Exists(path))
                 {
-                    GroupedData = groupedData,
-                    CacheTime = DateTime.Now
-                };
-
-                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, CompliancePolicyCacheFile), json);
-                System.Diagnostics.Debug.WriteLine("Saved compliance policy data to cache");
+                    File.Delete(path);
+                    System.Diagnostics.Debug.WriteLine("Cleared compliance policy cache");
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving compliance policy cache: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error clearing compliance cache: {ex.Message}");
             }
         }
 
@@ -96,12 +96,6 @@ namespace IntuneComplianceMonitor.Services
                 System.Diagnostics.Debug.WriteLine($"Error loading compliance policy cache: {ex.Message}");
                 return null;
             }
-        }
-
-        public class CompliancePolicyCacheData
-        {
-            public Dictionary<string, List<DeviceViewModel>> GroupedData { get; set; }
-            public DateTime CacheTime { get; set; }
         }
 
         public async Task<List<DeviceViewModel>> GetDevicesFromCacheAsync()
@@ -135,35 +129,6 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
-        public async Task SaveStatsToCacheAsync(
-            int totalDevices,
-            Dictionary<string, int> devicesByType,
-            Dictionary<string, int> devicesByOwnership)
-        {
-            try
-            {
-                var cacheData = new StatsCacheData
-                {
-                    TotalDevices = totalDevices,
-                    DevicesByType = devicesByType,
-                    DevicesByOwnership = devicesByOwnership,
-                    CacheTime = DateTime.Now
-                };
-
-                string json = JsonSerializer.Serialize(cacheData, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, StatsCacheFile), json);
-                System.Diagnostics.Debug.WriteLine("Saved stats to cache");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error saving stats to cache: {ex.Message}");
-            }
-        }
-
         public async Task<StatsCacheData> GetStatsFromCacheAsync()
         {
             try
@@ -194,39 +159,194 @@ namespace IntuneComplianceMonitor.Services
                 return null;
             }
         }
+        private const string LocationCacheFile = "deviceLocations.json";
 
-        public void ClearCache()
+        public async Task SaveDeviceLocationCacheAsync(List<DeviceViewModel> devices)
         {
             try
             {
-                if (Directory.Exists(CacheDirectory))
+                var data = new DeviceLocationCacheData
                 {
-                    foreach (var file in Directory.GetFiles(CacheDirectory))
-                    {
-                        File.Delete(file);
-                    }
-                    System.Diagnostics.Debug.WriteLine("Cache cleared");
+                    Devices = devices,
+                    CacheTime = DateTime.Now
+                };
+
+                string json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, LocationCacheFile), json);
+                System.Diagnostics.Debug.WriteLine($"Saved {devices.Count} devices to location cache");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving location cache: {ex.Message}");
+            }
+        }
+
+        public async Task SaveCompliancePoliciesToCacheAsync(Dictionary<string, List<DeviceViewModel>> groupedData)
+        {
+            try
+            {
+                var data = new CompliancePolicyCacheData
+                {
+                    GroupedData = groupedData,
+                    CacheTime = DateTime.Now
+                };
+
+                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, CompliancePolicyCacheFile), json);
+                System.Diagnostics.Debug.WriteLine("Saved compliance policy data to cache");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving compliance policy cache: {ex.Message}");
+            }
+        }
+        public async Task<List<DeviceViewModel>> GetDeviceLocationCacheAsync()
+        {
+            try
+            {
+                string path = Path.Combine(CacheDirectory, LocationCacheFile);
+                if (!File.Exists(path)) return null;
+
+                string json = await File.ReadAllTextAsync(path);
+                var data = JsonSerializer.Deserialize<DeviceLocationCacheData>(json);
+
+                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(24))
+                {
+                    System.Diagnostics.Debug.WriteLine("Location cache expired");
+                    return null;
+                }
+
+                return data.Devices;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading location cache: {ex.Message}");
+                return null;
+            }
+        }
+        public void ClearDeviceLocationCache()
+        {
+            try
+            {
+                string path = Path.Combine(CacheDirectory, LocationCacheFile);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    System.Diagnostics.Debug.WriteLine("Cleared device location cache");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error clearing cache: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error clearing location cache: {ex.Message}");
             }
         }
+
+        public async Task SaveDevicesToCacheAsync(List<DeviceViewModel> devices)
+        {
+            try
+            {
+                var cacheData = new DevicesCacheData
+                {
+                    Devices = devices,
+                    CacheTime = DateTime.Now
+                };
+
+                string json = JsonSerializer.Serialize(cacheData, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, DevicesCacheFile), json);
+                System.Diagnostics.Debug.WriteLine($"Saved {devices.Count} devices to cache");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving devices to cache: {ex.Message}");
+            }
+        }
+        public async Task SaveStatsToCacheAsync(
+            int totalDevices,
+            Dictionary<string, int> devicesByType,
+            Dictionary<string, int> devicesByOwnership)
+        {
+            try
+            {
+                var cacheData = new StatsCacheData
+                {
+                    TotalDevices = totalDevices,
+                    DevicesByType = devicesByType,
+                    DevicesByOwnership = devicesByOwnership,
+                    CacheTime = DateTime.Now
+                };
+
+                string json = JsonSerializer.Serialize(cacheData, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, StatsCacheFile), json);
+                System.Diagnostics.Debug.WriteLine("Saved stats to cache");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving stats to cache: {ex.Message}");
+            }
+        }
+
+        #endregion Methods
+
+        #region Classes
+
+        public class CompliancePolicyCacheData
+        {
+            #region Properties
+
+            public DateTime CacheTime { get; set; }
+            public Dictionary<string, List<DeviceViewModel>> GroupedData { get; set; }
+
+            #endregion Properties
+        }
+        public class DeviceLocationCacheData
+        {
+            #region Properties
+
+            public DateTime CacheTime { get; set; }
+            public List<DeviceViewModel> Devices { get; set; }
+
+            #endregion Properties
+        }
+
+        #endregion Classes
     }
 
     // Classes for serialization
     public class DevicesCacheData
     {
-        public List<DeviceViewModel> Devices { get; set; }
+        #region Properties
+
         public DateTime CacheTime { get; set; }
+        public List<DeviceViewModel> Devices { get; set; }
+
+        #endregion Properties
     }
 
     public class StatsCacheData
     {
-        public int TotalDevices { get; set; }
-        public Dictionary<string, int> DevicesByType { get; set; }
-        public Dictionary<string, int> DevicesByOwnership { get; set; }
+        #region Properties
+
         public DateTime CacheTime { get; set; }
+        public Dictionary<string, int> DevicesByOwnership { get; set; }
+        public Dictionary<string, int> DevicesByType { get; set; }
+        public int TotalDevices { get; set; }
+
+        #endregion Properties
     }
 }

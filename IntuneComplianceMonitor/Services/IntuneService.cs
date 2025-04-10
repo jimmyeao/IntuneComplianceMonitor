@@ -89,6 +89,77 @@ namespace IntuneComplianceMonitor.Services
                 throw;
             }
         }
+
+        #endregion Constructors
+
+        #region Properties
+
+        public string CurrentUser => _tokenProvider?.CurrentUserPrincipalName ?? "Unknown";
+
+        // Add delegate for status message updates
+        public Action<string> StatusMessage { get; set; }
+
+        public TimeSpan TimeUntilExpiry => _tokenProvider?.TimeUntilExpiry ?? TimeSpan.Zero;
+
+        public DateTime TokenExpires => _tokenProvider?.TokenExpires ?? DateTime.MinValue;
+
+        public TokenProvider TokenProvider => _tokenProvider;
+
+        #endregion Properties
+
+        #region Methods
+
+        public async Task EnrichDevicesWithUserLocationAsync(List<DeviceViewModel> devices)
+        {
+            var semaphore = new SemaphoreSlim(5); // limit concurrent calls
+
+            var tasks = devices.Select(async device =>
+            {
+                if (string.IsNullOrEmpty(device.DeviceId))
+                    return;
+
+                await semaphore.WaitAsync();
+
+                try
+                {
+                    var userId = device.UserId; // You'll need to set this when building DeviceViewModel
+
+                    if (string.IsNullOrWhiteSpace(userId))
+                        return;
+
+                    var user = await _graphClient.Users[userId]
+                        .GetAsync(req =>
+                        {
+                            req.QueryParameters.Select = new[] { "country", "city", "officeLocation" };
+                        });
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        device.Country = user?.Country ?? "Unknown";
+                        device.City = user?.City ?? "Unknown";
+                        device.OfficeLocation = user?.OfficeLocation ?? "";
+                    });
+                    System.Diagnostics.Debug.WriteLine($"Enriching {device.DeviceName} (UserId: {device.UserId})");
+
+                    if (!string.IsNullOrWhiteSpace(device.Country))
+                    {
+                        System.Diagnostics.Debug.WriteLine($" → Country: {device.Country}");
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to enrich location for {device.DeviceName}: {ex.Message}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+        }
+
         public async Task<string> EnsureUserPrincipalNameAsync()
         {
             // First try to get it from MSAL
@@ -116,27 +187,6 @@ namespace IntuneComplianceMonitor.Services
 
             return "Unknown";
         }
-
-
-        #endregion Constructors
-
-        #region Properties
-
-        public string CurrentUser => _tokenProvider?.CurrentUserPrincipalName ?? "Unknown";
-
-        // Add delegate for status message updates
-        public Action<string> StatusMessage { get; set; }
-
-        public TimeSpan TimeUntilExpiry => _tokenProvider?.TimeUntilExpiry ?? TimeSpan.Zero;
-
-        public DateTime TokenExpires => _tokenProvider?.TokenExpires ?? DateTime.MinValue;
-
-        public TokenProvider TokenProvider => _tokenProvider;
-
-        #endregion Properties
-
-        #region Methods
-
         public async Task<List<ConfigurationProfileViewModel>> GetAppliedConfigurationProfilesAsync(string deviceId, CancellationToken cancellationToken = default)
         {
             var result = new List<ConfigurationProfileViewModel>();
@@ -475,6 +525,61 @@ namespace IntuneComplianceMonitor.Services
 
             return counts;
         }
+        public async Task<Dictionary<string, List<DeviceViewModel>>> GetDevicesGroupedByPolicyAsync(List<DeviceViewModel> devices)
+        {
+            var result = new Dictionary<string, List<DeviceViewModel>>(StringComparer.OrdinalIgnoreCase);
+            var semaphore = new SemaphoreSlim(5); // control parallelism
+
+            var tasks = devices.Select(async device =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var policyStates = await _graphClient.DeviceManagement.ManagedDevices[device.DeviceId]
+                        .DeviceCompliancePolicyStates
+                        .GetAsync();
+
+                    if (policyStates?.Value != null)
+                    {
+                        foreach (var policyState in policyStates.Value)
+                        {
+                            if (policyState.State != Microsoft.Graph.Models.ComplianceStatus.NonCompliant)
+                                continue;
+
+                            var policyName = policyState.DisplayName ?? "Unknown Policy";
+
+                            lock (result)
+                            {
+                                if (!result.TryGetValue(policyName, out var list))
+                                {
+                                    list = new List<DeviceViewModel>();
+                                    result[policyName] = list;
+                                }
+
+                                list.Add(device);
+                            }
+
+                            // Update device compliance issues inline
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                device.ComplianceIssues.Add(policyName);
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Policy fetch error for {device.DeviceName}: {ex.Message}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+            return result;
+        }
 
         public async Task<(List<DeviceViewModel>, Dictionary<string, int>)> GetNonCompliantDevicesAsync()
         {
@@ -559,7 +664,8 @@ namespace IntuneComplianceMonitor.Services
                         SerialNumber = device.SerialNumber,
                         Manufacturer = device.Manufacturer,
                         Model = device.Model,
-                        ComplianceIssues = new List<string> { "Uncompliant" }
+                        ComplianceIssues = new List<string> { "Uncompliant" },
+                        UserId = device.UserId
                     };
 
                     result.Add(vm);
@@ -787,62 +893,6 @@ namespace IntuneComplianceMonitor.Services
             }
             return false;
         }
-        public async Task<Dictionary<string, List<DeviceViewModel>>> GetDevicesGroupedByPolicyAsync(List<DeviceViewModel> devices)
-        {
-            var result = new Dictionary<string, List<DeviceViewModel>>(StringComparer.OrdinalIgnoreCase);
-            var semaphore = new SemaphoreSlim(5); // control parallelism
-
-            var tasks = devices.Select(async device =>
-            {
-                await semaphore.WaitAsync();
-                try
-                {
-                    var policyStates = await _graphClient.DeviceManagement.ManagedDevices[device.DeviceId]
-                        .DeviceCompliancePolicyStates
-                        .GetAsync();
-
-                    if (policyStates?.Value != null)
-                    {
-                        foreach (var policyState in policyStates.Value)
-                        {
-                            if (policyState.State != Microsoft.Graph.Models.ComplianceStatus.NonCompliant)
-                                continue;
-
-                            var policyName = policyState.DisplayName ?? "Unknown Policy";
-
-                            lock (result)
-                            {
-                                if (!result.TryGetValue(policyName, out var list))
-                                {
-                                    list = new List<DeviceViewModel>();
-                                    result[policyName] = list;
-                                }
-
-                                list.Add(device);
-                            }
-
-                            // Update device compliance issues inline
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                device.ComplianceIssues.Add(policyName);
-                            });
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Policy fetch error for {device.DeviceName}: {ex.Message}");
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-            });
-
-            await Task.WhenAll(tasks);
-            return result;
-        }
-
 
         #endregion Methods
     }

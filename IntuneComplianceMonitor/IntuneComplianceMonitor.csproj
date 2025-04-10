@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 	  <ApplicationManifest>app.manifest</ApplicationManifest>
+	  <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +16,8 @@
 
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.0.1" />
-    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc5.4" />
+    <PackageReference Include="LiveChartsCore.
+					  SharpView.WPF" Version="2.0.0-rc5.4" />
     <PackageReference Include="Microsoft.Graph" Version="5.75.0" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.70.1" />
     <PackageReference Include="Microsoft.Identity.Client.Desktop" Version="4.70.1" />

@@ -19,6 +19,51 @@ namespace IntuneComplianceMonitor.ViewModels
         private string _manufacturer;
         private string _model;
         private List<string> _complianceIssues;
+        public string UserId { get; set; } // Populate from ManagedDevice.UserId
+       
+      
+        private string _country;
+        private string _city;
+        private string _officeLocation;
+
+        public string Country
+        {
+            get => _country;
+            set
+            {
+                if (_country != value)
+                {
+                    _country = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string City
+        {
+            get => _city;
+            set
+            {
+                if (_city != value)
+                {
+                    _city = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string OfficeLocation
+        {
+            get => _officeLocation;
+            set
+            {
+                if (_officeLocation != value)
+                {
+                    _officeLocation = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public DeviceViewModel()
         {

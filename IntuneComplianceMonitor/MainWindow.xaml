@@ -64,6 +64,15 @@
                             Padding="20,12"
                             Margin="5,2"
                             Click="NavigationButton_Click"/>
+                    <Button Content="Location" 
+         Tag="Location" 
+         Background="Transparent"
+         Foreground="White"
+         BorderThickness="0"
+         HorizontalContentAlignment="Left"
+         Padding="20,12"
+         Margin="5,2"
+         Click="NavigationButton_Click"/>
                     <Button Content="Compliance" 
                             Tag="Compliance" 
                             Background="Transparent"

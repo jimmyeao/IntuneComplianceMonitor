@@ -139,6 +139,10 @@ namespace IntuneComplianceMonitor
                 case "Compliance":
                     page = new CompliancePolicyPage();
                     break;
+                case "Location":
+                    page = new LocationPage();
+                    break;
+
             }
 
             // Always navigate to the new page

@@ -1,4 +1,5 @@
 ﻿using IntuneComplianceMonitor.Services;
+using Microsoft.Graph.Models;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -33,6 +34,7 @@ namespace IntuneComplianceMonitor.ViewModels
             Devices = new ObservableCollection<DeviceViewModel>();
             LoadDataCommand = new RelayCommand(_ => LoadData());
             ApplyFiltersCommand = new RelayCommand(_ => ApplyFilters());
+            RefreshCommand = new RelayCommand(async _ => await LoadData(forceRefresh: true));
             LoadData(); // 👈 THIS is what was missing
         }
 
@@ -68,37 +70,45 @@ namespace IntuneComplianceMonitor.ViewModels
                 }
             }
         }
+        public ICommand RefreshCommand { get; }
+
+
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string propName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
 
-        public async Task LoadData()
+        public async Task LoadData(bool forceRefresh = false)
         {
             IsLoading = true;
 
             try
             {
-                // Try cache first
-                var cached = await ServiceManager.Instance.DataCacheService.GetCompliancePoliciesFromCacheAsync();
-                if (cached != null)
+                if (!forceRefresh)
                 {
-                    _groupedData = cached;
-                    foreach (var policy in _groupedData.Keys.OrderBy(k => k))
-                        Policies.Add(policy);
-                    SelectedPolicy = Policies.FirstOrDefault();
-                    return;
+                    var cached = await ServiceManager.Instance.DataCacheService.GetCompliancePoliciesFromCacheAsync();
+                    if (cached != null)
+                    {
+                        _groupedData = cached;
+                        foreach (var policy in _groupedData.Keys.OrderBy(k => k))
+                            Policies.Add(policy);
+                        SelectedPolicy = Policies.FirstOrDefault();
+                        return;
+                    }
                 }
 
-                // Else fetch and cache
                 var (allDevices, _) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
-                var grouped = await ServiceManager.Instance.IntuneService.GetDevicesGroupedByPolicyAsync(allDevices);
 
+                await ServiceManager.Instance.IntuneService.EnrichDevicesWithUserLocationAsync(allDevices);
+
+                var grouped = await ServiceManager.Instance.IntuneService.GetDevicesGroupedByPolicyAsync(allDevices);
                 _groupedData = grouped;
+
                 await ServiceManager.Instance.DataCacheService.SaveCompliancePoliciesToCacheAsync(grouped);
 
                 foreach (var policy in _groupedData.Keys.OrderBy(k => k))
                     Policies.Add(policy);
+
                 SelectedPolicy = Policies.FirstOrDefault();
             }
             finally
@@ -106,9 +116,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 IsLoading = false;
             }
         }
-
-
-
+        public Action OnRefreshRequested { get; set; }
 
 
         private void ApplyFilters()
