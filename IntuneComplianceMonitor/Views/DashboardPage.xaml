@@ -1,254 +1,171 @@
-﻿<Page x:Class="IntuneComplianceMonitor.Views.DashboardPage"
+﻿<!-- FULL DashboardPage.xaml with All Legends and Fullscreen Loading Overlay -->
+<Page x:Class="IntuneComplianceMonitor.Views.DashboardPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
       Title="Dashboard">
 
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <Grid>
+        <!-- Main Content Layer -->
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <!-- Top metrics cards -->
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+            <!-- Top Metrics Cards -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-            <!-- Total Devices Card -->
-            <Border Grid.Column="0"
-                    Background="#333337"
-                    BorderBrush="#444444"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="15"
-                    Margin="5,5,10,15">
-                <Border.Effect>
-                    <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
-                </Border.Effect>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0"
-                               Text="Total Devices"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,10"
-                               Foreground="White"
-                               HorizontalAlignment="Center" />
-
-                    <TextBlock Grid.Row="1"
-                               Text="{Binding TotalDevices}"
-                               Foreground="#0078D7"
-                               FontSize="38"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Margin="0,10,0,10" />
-                </Grid>
-            </Border>
-
-            <!-- Non-Compliant Devices Card -->
-            <Border Grid.Column="1"
-                    Background="#333337"
-                    BorderBrush="#444444"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="15"
-                    Margin="5,5,10,15">
-                <Border.Effect>
-                    <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
-                </Border.Effect>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0"
-                               Text="Non-Compliant Devices"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,10"
-                               Foreground="White"
-                               HorizontalAlignment="Center" />
-
-                    <TextBlock Grid.Row="1"
-                               Text="{Binding NonCompliantDevices}"
-                               Foreground="#FF5252"
-                               FontSize="38"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Margin="0,10,0,10" />
-                </Grid>
-            </Border>
-
-            <!-- Not Checked In Devices Card -->
-            <Border Grid.Column="2"
-                    Background="#333337"
-                    BorderBrush="#444444"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="15"
-                    Margin="5,5,10,15">
-                <Border.Effect>
-                    <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
-                </Border.Effect>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0"
-                               Text="Not Checked in Recently"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,10"
-                               Foreground="White"
-                               HorizontalAlignment="Center" />
-
-                    <TextBlock Grid.Row="1"
-                               Text="{Binding DevicesNotCheckedInRecently}"
-                               Foreground="#FF9800"
-                               FontSize="38"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Margin="0,10,0,10" />
-                </Grid>
-            </Border>
-        </Grid>
-
-        <!-- Charts section -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Devices by Type Chart -->
-            <Border Grid.Column="0"
-                    Background="#333337"
-                    BorderBrush="#444444"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="15"
-                    Margin="5,5,10,15">
-                <Border.Effect>
-                    <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
-                </Border.Effect>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0"
-                           Text="Devices by Type"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,10"
-                           Foreground="White"
-                           HorizontalAlignment="Center" />
-
-                    <lvc:PieChart Grid.Row="1"
-                             Series="{Binding DeviceTypesSeries}"
-                             LegendPosition="Hidden"
-                             Margin="10" />
-
-                    <!-- Custom Legend -->
-                    <Grid Grid.Row="2" Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                <!-- Total Devices -->
+                <Border Grid.Column="0" Background="#333337" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5,5,10,15">
+                    <Border.Effect>
+                        <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
+                    </Border.Effect>
+                    <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Total Devices" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Text="{Binding TotalDevices}" Foreground="#0078D7" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,10,0,10" />
+                    </Grid>
+                </Border>
+
+                <!-- Non-Compliant Devices -->
+                <Border Grid.Column="1" Background="#333337" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5,5,10,15">
+                    <Border.Effect>
+                        <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Non-Compliant Devices" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Text="{Binding NonCompliantDevices}" Foreground="#FF5252" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,10,0,10" />
+                    </Grid>
+                </Border>
+
+                <!-- Not Checked In -->
+                <Border Grid.Column="2" Background="#333337" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5,5,10,15">
+                    <Border.Effect>
+                        <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Not Checked in Recently" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Row="1" Text="{Binding DevicesNotCheckedInRecently}" Foreground="#FF9800" FontSize="38" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,10,0,10" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Chart Section -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Devices by Type Chart -->
+                <Border Grid.Column="0" Background="#333337" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5,5,10,15">
+                    <Border.Effect>
+                        <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-
-                        <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" Margin="5">
-                            <Ellipse Width="12" Height="12" Fill="#1E90FF" Margin="0,0,8,0" />
-                            <TextBlock Text="Windows" Foreground="White" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Margin="5">
-                            <Ellipse Width="12" Height="12" Fill="#00C851" Margin="0,0,8,0" />
-                            <TextBlock Text="macOS" Foreground="White" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="5">
-                            <Ellipse Width="12" Height="12" Fill="#FFA726" Margin="0,0,8,0" />
-                            <TextBlock Text="iOS" Foreground="White" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Margin="5">
-                            <Ellipse Width="12" Height="12" Fill="#4CAF50" Margin="0,0,8,0" />
-                            <TextBlock Text="Android" Foreground="White" />
-                        </StackPanel>
+                        <TextBlock Grid.Row="0" Text="Devices by Type" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Center" />
+                        <lvc:PieChart Grid.Row="1" Series="{Binding DeviceTypesSeries}" LegendPosition="Hidden" Margin="10" Height="300" Width="300" HorizontalAlignment="Center" />
+                        <Grid Grid.Row="2" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" Margin="5">
+                                <Ellipse Width="12" Height="12" Fill="#1E90FF" Margin="0,0,8,0" />
+                                <TextBlock Text="Windows" Foreground="White" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" Margin="5">
+                                <Ellipse Width="12" Height="12" Fill="#00C851" Margin="0,0,8,0" />
+                                <TextBlock Text="macOS" Foreground="White" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Horizontal" Margin="5">
+                                <Ellipse Width="12" Height="12" Fill="#FFA726" Margin="0,0,8,0" />
+                                <TextBlock Text="iOS" Foreground="White" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Margin="5">
+                                <Ellipse Width="12" Height="12" Fill="#4CAF50" Margin="0,0,8,0" />
+                                <TextBlock Text="Android" Foreground="White" />
+                            </StackPanel>
+                        </Grid>
                     </Grid>
-                </Grid>
-            </Border>
+                </Border>
 
-            <!-- Devices by Ownership Chart -->
-            <Border Grid.Column="1"
-                    Background="#333337"
-                    BorderBrush="#444444"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="15"
-                    Margin="5,5,10,15">
-                <Border.Effect>
-                    <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
-                </Border.Effect>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                <!-- Devices by Ownership Chart -->
+                <Border Grid.Column="1" Background="#333337" BorderBrush="#444444" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5,5,10,15">
+                    <Border.Effect>
+                        <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Devices by Ownership" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Center" />
+                        <lvc:PieChart Grid.Row="1" Series="{Binding OwnershipSeries}" LegendPosition="Hidden" Margin="10" Height="300" Width="300" HorizontalAlignment="Center" />
+                        <Grid Grid.Row="2" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="5">
+                                <Ellipse Width="12" Height="12" Fill="#4CAF50" Margin="0,0,8,0" />
+                                <TextBlock Text="Company" Foreground="White" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <Ellipse Width="12" Height="12" Fill="#FFA726" Margin="0,0,8,0" />
+                                <TextBlock Text="Personal" Foreground="White" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
 
-                    <TextBlock Grid.Row="0"
-                           Text="Devices by Ownership"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,10"
+        <!-- Full-Page Loading Overlay -->
+        <Grid x:Name="LoadingOverlay"
+              Background="#80000000"
+              Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+              Panel.ZIndex="999"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="Loading data..."
+                           FontSize="18"
                            Foreground="White"
-                           HorizontalAlignment="Center" />
-
-                    <lvc:PieChart Grid.Row="1"
-                             Series="{Binding OwnershipSeries}"
-                             LegendPosition="Hidden"
-                             Margin="10" />
-
-                    <!-- Custom Legend -->
-                    <Grid Grid.Row="2" Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="5">
-                            <Ellipse Width="12" Height="12" Fill="#4CAF50" Margin="0,0,8,0" />
-                            <TextBlock Text="Company" Foreground="White" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="5">
-                            <Ellipse Width="12" Height="12" Fill="#FFA726" Margin="0,0,8,0" />
-                            <TextBlock Text="Personal" Foreground="White" />
-                        </StackPanel>
-                    </Grid>
-                </Grid>
-            </Border>
+                           Margin="0,0,0,20" />
+                <ProgressBar Width="250"
+                             Height="10"
+                             IsIndeterminate="True"
+                             Foreground="#0078D7"
+                             Background="#444444" />
+            </StackPanel>
         </Grid>
     </Grid>
 </Page>

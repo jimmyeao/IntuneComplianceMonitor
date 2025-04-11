@@ -98,14 +98,14 @@ namespace IntuneComplianceMonitor.Views
         private async void LocationPage_Loaded(object sender, RoutedEventArgs e)
         {
             // Show a loading window while data is being loaded
-            var loadingWindow = new LoadingWindow
-            {
-                Owner = Application.Current.MainWindow
-            };
+            //var loadingWindow = new LoadingWindow
+            //{
+            //    Owner = Application.Current.MainWindow
+            //};
 
             try
             {
-                loadingWindow.Show();
+               // loadingWindow.Show();
 
                 // Set status message to loading
                 _viewModel.StatusMessage = "Loading location data...";
@@ -127,7 +127,7 @@ namespace IntuneComplianceMonitor.Views
             finally
             {
                 _viewModel.IsLoading = false;
-                loadingWindow.Close();
+                //loadingWindow.Close();
             }
         }
 
@@ -222,14 +222,14 @@ namespace IntuneComplianceMonitor.Views
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
             // Show a loading window during refresh
-            var loadingWindow = new LoadingWindow
-            {
-                Owner = Application.Current.MainWindow
-            };
+            //var loadingWindow = new LoadingWindow
+            //{
+            //    Owner = Application.Current.MainWindow
+            //};
 
             try
             {
-                loadingWindow.Show();
+                //loadingWindow.Show();
 
                 // Set status message to refreshing
                 _viewModel.StatusMessage = "Refreshing location data...";
@@ -254,7 +254,7 @@ namespace IntuneComplianceMonitor.Views
             finally
             {
                 _viewModel.IsLoading = false;
-                loadingWindow.Close();
+                //loadingWindow.Close();
             }
         }
 
