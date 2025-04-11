@@ -2,8 +2,11 @@
 using System.Windows;
 
 namespace IntuneComplianceMonitor.Views;
+
 public partial class ComplianceDetailsWindow : Window
 {
+    #region Constructors
+
     public ComplianceDetailsWindow(CompliancePolicyStateViewModel policy, DeviceViewModel device)
     {
         InitializeComponent();
@@ -15,4 +18,6 @@ public partial class ComplianceDetailsWindow : Window
             Device = device
         };
     }
+
+    #endregion Constructors
 }

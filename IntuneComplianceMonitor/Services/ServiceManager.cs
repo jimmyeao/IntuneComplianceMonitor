@@ -3,21 +3,63 @@ using System.Windows;
 
 public class ServiceManager
 {
-    private static ServiceManager _instance;
+    #region Fields
+
     private static readonly object _lock = new object();
+    private static ServiceManager _instance;
+    private Lazy<DataCacheService> _dataCacheService;
 
     // Make these lazy-initialized with thread-safety
     private Lazy<IntuneService> _intuneService;
+
     private Lazy<SampleDataService> _sampleDataService;
-    private Lazy<DataCacheService> _dataCacheService;
     private Lazy<SettingsService> _settingsService;
 
-    public bool UseRealData { get; private set; }
+    #endregion Fields
+
+    #region Constructors
 
     private ServiceManager()
     {
         InitializeServices();
     }
+
+    #endregion Constructors
+
+    #region Properties
+
+    public static ServiceManager Instance
+    {
+        get
+        {
+            // Double-checked locking pattern
+            if (_instance == null)
+            {
+                lock (_lock)
+                {
+                    if (_instance == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Creating ServiceManager instance");
+                        _instance = new ServiceManager();
+                    }
+                }
+            }
+            return _instance;
+        }
+    }
+
+    public DataCacheService DataCacheService => _dataCacheService.Value;
+
+    // Expose services with lazy initialization
+    public IntuneService IntuneService => _intuneService.Value;
+
+    public SampleDataService SampleDataService => _sampleDataService.Value;
+    public SettingsService SettingsService => _settingsService.Value;
+    public bool UseRealData { get; private set; }
+
+    #endregion Properties
+
+    #region Methods
 
     private void InitializeServices()
     {
@@ -72,29 +114,5 @@ public class ServiceManager
         }
     }
 
-    // Expose services with lazy initialization
-    public IntuneService IntuneService => _intuneService.Value;
-    public SampleDataService SampleDataService => _sampleDataService.Value;
-    public DataCacheService DataCacheService => _dataCacheService.Value;
-    public SettingsService SettingsService => _settingsService.Value;
-
-    public static ServiceManager Instance
-    {
-        get
-        {
-            // Double-checked locking pattern
-            if (_instance == null)
-            {
-                lock (_lock)
-                {
-                    if (_instance == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Creating ServiceManager instance");
-                        _instance = new ServiceManager();
-                    }
-                }
-            }
-            return _instance;
-        }
-    }
+    #endregion Methods
 }

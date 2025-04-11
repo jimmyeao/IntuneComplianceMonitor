@@ -5,11 +5,7 @@ namespace IntuneComplianceMonitor.Models
 {
     public class DeviceMarker
     {
-        public string CountryName { get; set; }
-        public Location Location { get; set; }
-        public int Count { get; set; }
-        public double Size { get; set; }
-        public SolidColorBrush Fill { get; set; }
+        #region Constructors
 
         public DeviceMarker(string countryName, double latitude, double longitude, int count)
         {
@@ -33,5 +29,17 @@ namespace IntuneComplianceMonitor.Models
             else
                 Fill = new SolidColorBrush(Color.FromRgb(16, 137, 62));    // Green
         }
+
+        #endregion Constructors
+
+        #region Properties
+
+        public int Count { get; set; }
+        public string CountryName { get; set; }
+        public SolidColorBrush Fill { get; set; }
+        public Location Location { get; set; }
+        public double Size { get; set; }
+
+        #endregion Properties
     }
 }

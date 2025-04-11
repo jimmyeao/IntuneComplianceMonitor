@@ -1,28 +1,31 @@
 ﻿using IntuneComplianceMonitor.Models;
-using System.Windows.Controls;
-using IntuneComplianceMonitor.Services;
-using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace IntuneComplianceMonitor.ViewModels
 {
     public class SettingsViewModel : INotifyPropertyChanged
     {
-        private bool _isLoading;
-        private string _statusMessage;
-        private int _daysNotCheckedIn;
+        #region Fields
+
+        private readonly PasswordBox _clientSecretBox;
         private int _activeDevicesTimeframe;
         private bool _autoRefreshEnabled;
         private int _autoRefreshInterval;
+        private int _daysNotCheckedIn;
         private string _intuneClientId;
-        private string _intuneTenantId;
         private string _intuneClientSecret;
+        private string _intuneTenantId;
+        private bool _isLoading;
         private DateTime _lastSyncTime;
-        private readonly PasswordBox _clientSecretBox;
+        private string _statusMessage;
+
+        #endregion Fields
+
+        #region Constructors
 
         public SettingsViewModel(PasswordBox clientSecretBox)
         {
@@ -51,86 +54,15 @@ namespace IntuneComplianceMonitor.ViewModels
             StatusMessage = "Settings loaded";
         }
 
+        #endregion Constructors
+
+        #region Events
+
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public ICommand SaveCommand { get; }
-        public ICommand ResetToDefaultsCommand { get; }
+        #endregion Events
 
-        public bool IsLoading
-        {
-            get => _isLoading;
-            set
-            {
-                if (_isLoading != value)
-                {
-                    _isLoading = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        public string StatusMessage
-        {
-            get => _statusMessage;
-            set
-            {
-                if (_statusMessage != value)
-                {
-                    _statusMessage = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-        public string IntuneClientId
-        {
-            get => _intuneClientId;
-            set
-            {
-                if (_intuneClientId != value)
-                {
-                    _intuneClientId = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        public string IntuneTenantId
-        {
-            get => _intuneTenantId;
-            set
-            {
-                if (_intuneTenantId != value)
-                {
-                    _intuneTenantId = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        public string IntuneClientSecret
-        {
-            get => _intuneClientSecret;
-            set
-            {
-                if (_intuneClientSecret != value)
-                {
-                    _intuneClientSecret = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-        public int DaysNotCheckedIn
-        {
-            get => _daysNotCheckedIn;
-            set
-            {
-                if (_daysNotCheckedIn != value)
-                {
-                    _daysNotCheckedIn = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
+        #region Properties
 
         public int ActiveDevicesTimeframe
         {
@@ -171,6 +103,71 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
+        public int DaysNotCheckedIn
+        {
+            get => _daysNotCheckedIn;
+            set
+            {
+                if (_daysNotCheckedIn != value)
+                {
+                    _daysNotCheckedIn = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string IntuneClientId
+        {
+            get => _intuneClientId;
+            set
+            {
+                if (_intuneClientId != value)
+                {
+                    _intuneClientId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string IntuneClientSecret
+        {
+            get => _intuneClientSecret;
+            set
+            {
+                if (_intuneClientSecret != value)
+                {
+                    _intuneClientSecret = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string IntuneTenantId
+        {
+            get => _intuneTenantId;
+            set
+            {
+                if (_intuneTenantId != value)
+                {
+                    _intuneTenantId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                if (_isLoading != value)
+                {
+                    _isLoading = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public DateTime LastSyncTime
         {
             get => _lastSyncTime;
@@ -187,6 +184,41 @@ namespace IntuneComplianceMonitor.ViewModels
         public string LastSyncTimeDisplay => LastSyncTime > DateTime.MinValue
             ? LastSyncTime.ToString("g")
             : "Never";
+
+        public ICommand ResetToDefaultsCommand { get; }
+        public ICommand SaveCommand { get; }
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            set
+            {
+                if (_statusMessage != value)
+                {
+                    _statusMessage = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        #endregion Properties
+
+        #region Methods
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void ResetToDefaults()
+        {
+            var defaultSettings = new ApplicationSettings();
+            DaysNotCheckedIn = defaultSettings.DaysNotCheckedIn;
+            ActiveDevicesTimeframe = defaultSettings.ActiveDevicesTimeframeInDays;
+            AutoRefreshEnabled = defaultSettings.AutoRefreshEnabled;
+            AutoRefreshInterval = defaultSettings.AutoRefreshIntervalMinutes;
+
+            StatusMessage = "Default settings loaded";
+        }
 
         private async void SaveSettings()
         {
@@ -235,20 +267,6 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        private void ResetToDefaults()
-        {
-            var defaultSettings = new ApplicationSettings();
-            DaysNotCheckedIn = defaultSettings.DaysNotCheckedIn;
-            ActiveDevicesTimeframe = defaultSettings.ActiveDevicesTimeframeInDays;
-            AutoRefreshEnabled = defaultSettings.AutoRefreshEnabled;
-            AutoRefreshInterval = defaultSettings.AutoRefreshIntervalMinutes;
-
-            StatusMessage = "Default settings loaded";
-        }
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
+        #endregion Methods
     }
 }

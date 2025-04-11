@@ -1,21 +1,15 @@
-﻿using IntuneComplianceMonitor.Services;
-using IntuneComplianceMonitor.ViewModels;
+﻿using IntuneComplianceMonitor.ViewModels;
 using IntuneComplianceMonitor.Views;
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-
-
 namespace IntuneComplianceMonitor
 {
     public partial class MainWindow : Window
     {
-        public string TokenStatus => $"Token expires in: {ServiceManager.Instance.IntuneService.TokenProvider.TimeUntilExpiry:mm\\:ss}";
-        public string CurrentUser => $"Signed in as: {ServiceManager.Instance.IntuneService.TokenProvider.CurrentUserPrincipalName ?? "Not signed in"}";
-        public ICommand LogoutCommand => new RelayCommand(async _ => await Logout());
+        #region Constructors
 
         public MainWindow()
         {
@@ -35,8 +29,6 @@ namespace IntuneComplianceMonitor
                         vm.Title = $"Intune Compliance Monitor — {user}";
                     }
                 };
-
-
             }
             catch (Exception ex)
             {
@@ -46,11 +38,163 @@ namespace IntuneComplianceMonitor
             // Load the dashboard page by default
             NavigateToPage("Dashboard");
         }
+
+        #endregion Constructors
+
+        #region Properties
+
+        public string CurrentUser => $"Signed in as: {ServiceManager.Instance.IntuneService.TokenProvider.CurrentUserPrincipalName ?? "Not signed in"}";
+        public ICommand LogoutCommand => new RelayCommand(async _ => await Logout());
+        public string TokenStatus => $"Token expires in: {ServiceManager.Instance.IntuneService.TokenProvider.TimeUntilExpiry:mm\\:ss}";
+
+        #endregion Properties
+
+        #region Methods
+
+        // Add this improved UpdateStatus method to MainWindow.xaml.cs
+        public void HighlightNavigationButton(string buttonTag)
+        {
+            // Find all buttons in the navigation
+            var buttons = FindVisualChildren<Button>(this)
+                .Where(b => b.Tag != null && b.Tag.ToString() != null);
+
+            // Reset all buttons to default style
+            foreach (var button in buttons)
+            {
+                button.Background = Brushes.Transparent;
+            }
+
+            // Find and highlight the requested button
+            var selectedButton = buttons.FirstOrDefault(b => b.Tag.ToString() == buttonTag);
+            if (selectedButton != null)
+            {
+                selectedButton.Background = new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30));
+            }
+        }
+
+        public void UpdateStatus(string message, bool showProgress = false)
+        {
+            // Make sure we update on the UI thread
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => UpdateStatus(message, showProgress));
+                return;
+            }
+
+            // Update the status UI elements
+            StatusText.Text = message + " " + ($"Token valid until: {ServiceManager.Instance.IntuneService.TokenExpires:g}");
+            StatusProgress.Visibility = showProgress ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+            StatusProgress.IsIndeterminate = showProgress;
+
+            // Force layout update to ensure changes are rendered immediately
+            StatusText.UpdateLayout();
+            StatusProgress.UpdateLayout();
+
+            // Log status updates to debug output as well
+            System.Diagnostics.Debug.WriteLine($"Status: {message} (Progress: {showProgress})");
+        }
+
+        // Helper method to find visual children of a specified type
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+        {
+            if (depObj != null)
+            {
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+                {
+                    DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
+                    if (child != null && child is T)
+                    {
+                        yield return (T)child;
+                    }
+
+                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    {
+                        yield return childOfChild;
+                    }
+                }
+            }
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Logout();
+        }
+
         private async Task Logout()
         {
             await ServiceManager.Instance.IntuneService.TokenProvider.LogoutAsync();
             MessageBox.Show("Logged out. Please restart the app to reauthenticate.", "Logged Out", MessageBoxButton.OK, MessageBoxImage.Information);
             Application.Current.Shutdown(); // Optional: force restart
+        }
+
+        private void NavigateToPage(string pageName)
+        {
+            Page? page = null;
+
+            switch (pageName)
+            {
+                case "Dashboard":
+                    page = new DashboardPage();
+                    break;
+
+                case "Devices":
+                    page = new DevicesPage();
+                    if (page.DataContext is DashboardViewModel deviceViewModel)
+                    {
+                        // Completely reset all filters for All Devices view
+                        deviceViewModel.SearchText = "";
+                        deviceViewModel.SelectedDeviceType = "";
+                        deviceViewModel.SelectedOwnership = "";
+                        deviceViewModel.ShowOnlyNonCompliant = false;
+                        deviceViewModel.FilterByNotCheckedIn = false;
+                        deviceViewModel.DaysNotCheckedIn = 0; // Reset days not checked in
+
+                        // Ensure filters are applied with reset conditions
+                        deviceViewModel.ApplyFilters();
+                    }
+                    break;
+
+                case "NotCheckedIn":
+                    page = new DevicesPage();
+                    if (page.DataContext is DashboardViewModel notCheckedInViewModel)
+                    {
+                        // Clear other filters first
+                        notCheckedInViewModel.SearchText = "";
+                        notCheckedInViewModel.SelectedDeviceType = "";
+                        notCheckedInViewModel.SelectedOwnership = "";
+                        notCheckedInViewModel.ShowOnlyNonCompliant = false;
+
+                        // Set days not checked in from settings
+                        var settings = ServiceManager.Instance.SettingsService.CurrentSettings;
+                        notCheckedInViewModel.DaysNotCheckedIn = settings.DaysNotCheckedIn;
+
+                        // Automatically set and apply the filter
+                        notCheckedInViewModel.FilterByNotCheckedIn = true;
+
+                        // Trigger immediate filter application
+                        notCheckedInViewModel.ApplyFilters();
+                    }
+                    break;
+
+                case "Settings":
+                    page = new SettingsPage();
+                    break;
+
+                default:
+                    page = new DashboardPage();
+                    break;
+
+                case "Compliance":
+                    page = new CompliancePolicyPage();
+                    break;
+
+                case "Location":
+                    page = new LocationPage();
+                    break;
+            }
+
+            // Always navigate to the new page
+            MainFrame.Navigate(page);
         }
 
         private void NavigationButton_Click(object sender, RoutedEventArgs e)
@@ -74,133 +218,19 @@ namespace IntuneComplianceMonitor
                 }
             }
         }
-        // Add this improved UpdateStatus method to MainWindow.xaml.cs
-        public void HighlightNavigationButton(string buttonTag)
+        // Add this method to MainWindow.xaml.cs
+        private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
-            // Find all buttons in the navigation
-            var buttons = FindVisualChildren<Button>(this)
-                .Where(b => b.Tag != null && b.Tag.ToString() != null);
-
-            // Reset all buttons to default style
-            foreach (var button in buttons)
+            if (MainFrame.Content is Page page)
             {
-                button.Background = Brushes.Transparent;
-            }
-
-            // Find and highlight the requested button
-            var selectedButton = buttons.FirstOrDefault(b => b.Tag.ToString() == buttonTag);
-            if (selectedButton != null)
-            {
-                selectedButton.Background = new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30));
-            }
-        }
-
-        // Helper method to find visual children of a specified type
-        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
-        {
-            if (depObj != null)
-            {
-                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+                if (page.DataContext is ViewModels.DashboardViewModel vm)
                 {
-                    DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
-                    if (child != null && child is T)
-                    {
-                        yield return (T)child;
-                    }
-
-                    foreach (T childOfChild in FindVisualChildren<T>(child))
-                    {
-                        yield return childOfChild;
-                    }
+                    // No need to clear cache, just reload with current data
+                    vm.LoadData(forceRefresh: false);
                 }
             }
         }
-        public void UpdateStatus(string message, bool showProgress = false)
-        {
-            // Make sure we update on the UI thread
-            if (!Dispatcher.CheckAccess())
-            {
-                Dispatcher.Invoke(() => UpdateStatus(message, showProgress));
-                return;
-            }
-           
 
-            // Update the status UI elements
-            StatusText.Text = message + " "+ ($"Token valid until: {ServiceManager.Instance.IntuneService.TokenExpires:g}");
-            StatusProgress.Visibility = showProgress ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
-            StatusProgress.IsIndeterminate = showProgress;
-
-            // Force layout update to ensure changes are rendered immediately
-            StatusText.UpdateLayout();
-            StatusProgress.UpdateLayout();
-
-            // Log status updates to debug output as well
-            System.Diagnostics.Debug.WriteLine($"Status: {message} (Progress: {showProgress})");
-        }
-        private void NavigateToPage(string pageName)
-        {
-            Page page = null;
-
-            switch (pageName)
-            {
-                case "Dashboard":
-                    page = new DashboardPage();
-                    break;
-                case "Devices":
-                    page = new DevicesPage();
-                    if (page.DataContext is DashboardViewModel deviceViewModel)
-                    {
-                        // Completely reset all filters for All Devices view
-                        deviceViewModel.SearchText = "";
-                        deviceViewModel.SelectedDeviceType = "";
-                        deviceViewModel.SelectedOwnership = "";
-                        deviceViewModel.ShowOnlyNonCompliant = false;
-                        deviceViewModel.FilterByNotCheckedIn = false;
-                        deviceViewModel.DaysNotCheckedIn = 0; // Reset days not checked in
-
-                        // Ensure filters are applied with reset conditions
-                        deviceViewModel.ApplyFilters();
-                    }
-                    break;
-                case "NotCheckedIn":
-                    page = new DevicesPage();
-                    if (page.DataContext is DashboardViewModel notCheckedInViewModel)
-                    {
-                        // Clear other filters first
-                        notCheckedInViewModel.SearchText = "";
-                        notCheckedInViewModel.SelectedDeviceType = "";
-                        notCheckedInViewModel.SelectedOwnership = "";
-                        notCheckedInViewModel.ShowOnlyNonCompliant = false;
-
-                        // Set days not checked in from settings
-                        var settings = ServiceManager.Instance.SettingsService.CurrentSettings;
-                        notCheckedInViewModel.DaysNotCheckedIn = settings.DaysNotCheckedIn;
-
-                        // Automatically set and apply the filter
-                        notCheckedInViewModel.FilterByNotCheckedIn = true;
-
-                        // Trigger immediate filter application
-                        notCheckedInViewModel.ApplyFilters();
-                    }
-                    break;
-                case "Settings":
-                    page = new SettingsPage();
-                    break;
-                default:
-                    page = new DashboardPage();
-                    break;
-                case "Compliance":
-                    page = new CompliancePolicyPage();
-                    break;
-                case "Location":
-                    page = new LocationPage();
-                    break;
-
-            }
-
-            // Always navigate to the new page
-            MainFrame.Navigate(page);
-        }
         private void SyncButton_Click(object sender, RoutedEventArgs e)
         {
             var loadingWindow = new SyncProgressWindow();
@@ -244,22 +274,6 @@ namespace IntuneComplianceMonitor
             });
         }
 
-        // Add this method to MainWindow.xaml.cs
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (MainFrame.Content is Page page)
-            {
-                if (page.DataContext is ViewModels.DashboardViewModel vm)
-                {
-                    // No need to clear cache, just reload with current data
-                    vm.LoadData(forceRefresh: false);
-                }
-            }
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            Logout();
-        }
+        #endregion Methods
     }
 }

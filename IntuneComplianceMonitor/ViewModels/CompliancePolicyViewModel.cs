@@ -1,24 +1,46 @@
-﻿using IntuneComplianceMonitor.Services;
-using Microsoft.Graph.Models;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using System;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace IntuneComplianceMonitor.ViewModels
 {
     public class CompliancePolicyViewModel : INotifyPropertyChanged
     {
+        #region Fields
+
         private Dictionary<string, List<DeviceViewModel>> _groupedData;
-        private string _selectedPolicy;
-        private string _searchText;
         private bool _isLoading;
+        private string _searchText;
+        private string _selectedPolicy;
         private string _statusMessage;
+
+        #endregion Fields
+
+        #region Constructors
+
+        public CompliancePolicyViewModel()
+        {
+            Policies = new ObservableCollection<string>();
+            Devices = new ObservableCollection<DeviceViewModel>();
+            LoadDataCommand = new RelayCommand(_ => LoadData());
+            ApplyFiltersCommand = new RelayCommand(_ => ApplyFilters());
+            RefreshCommand = new RelayCommand(async _ => await LoadData(forceRefresh: true));
+        }
+
+        #endregion Constructors
+
+        #region Events
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        #endregion Events
+
+        #region Properties
+
+        public ICommand ApplyFiltersCommand { get; }
+
+        public ObservableCollection<DeviceViewModel> Devices { get; }
 
         public bool IsLoading
         {
@@ -29,6 +51,42 @@ namespace IntuneComplianceMonitor.ViewModels
                 {
                     _isLoading = value;
                     OnPropertyChanged();
+                }
+            }
+        }
+
+        public ICommand LoadDataCommand { get; }
+
+        public Action OnRefreshRequested { get; set; }
+
+        public ObservableCollection<string> Policies { get; }
+
+        public ICommand RefreshCommand { get; }
+
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                if (_searchText != value)
+                {
+                    _searchText = value;
+                    OnPropertyChanged();
+                    ApplyFilters();
+                }
+            }
+        }
+
+        public string SelectedPolicy
+        {
+            get => _selectedPolicy;
+            set
+            {
+                if (_selectedPolicy != value)
+                {
+                    _selectedPolicy = value;
+                    OnPropertyChanged();
+                    ApplyFilters();
                 }
             }
         }
@@ -46,54 +104,9 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public CompliancePolicyViewModel()
-        {
-            Policies = new ObservableCollection<string>();
-            Devices = new ObservableCollection<DeviceViewModel>();
-            LoadDataCommand = new RelayCommand(_ => LoadData());
-            ApplyFiltersCommand = new RelayCommand(_ => ApplyFilters());
-            RefreshCommand = new RelayCommand(async _ => await LoadData(forceRefresh: true));
-        }
+        #endregion Properties
 
-        public ObservableCollection<string> Policies { get; }
-        public ObservableCollection<DeviceViewModel> Devices { get; }
-        public ICommand LoadDataCommand { get; }
-        public ICommand ApplyFiltersCommand { get; }
-        public ICommand RefreshCommand { get; }
-
-        public string SelectedPolicy
-        {
-            get => _selectedPolicy;
-            set
-            {
-                if (_selectedPolicy != value)
-                {
-                    _selectedPolicy = value;
-                    OnPropertyChanged();
-                    ApplyFilters();
-                }
-            }
-        }
-
-        public string SearchText
-        {
-            get => _searchText;
-            set
-            {
-                if (_searchText != value)
-                {
-                    _searchText = value;
-                    OnPropertyChanged();
-                    ApplyFilters();
-                }
-            }
-        }
-
-        public Action OnRefreshRequested { get; set; }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected virtual void OnPropertyChanged([CallerMemberName] string propName = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+        #region Methods
 
         public async Task LoadData(bool forceRefresh = false)
         {
@@ -145,6 +158,9 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
+        protected virtual void OnPropertyChanged([CallerMemberName] string propName = null) =>
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+
         private void ApplyFilters()
         {
             Devices.Clear();
@@ -164,5 +180,7 @@ namespace IntuneComplianceMonitor.ViewModels
 
             StatusMessage = $"Showing {Devices.Count} devices for policy '{SelectedPolicy}'";
         }
+
+        #endregion Methods
     }
 }

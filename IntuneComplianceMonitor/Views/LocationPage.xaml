@@ -6,110 +6,109 @@
     <Page.Resources>
         <!-- Custom tooltip style for better visibility -->
         <Style TargetType="ToolTip">
-            <Setter Property="Background" Value="#333333"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#666666"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="8,5"/>
-            <Setter Property="HasDropShadow" Value="True"/>
+            <Setter Property="Background" Value="#333333" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#666666" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="HasDropShadow" Value="True" />
         </Style>
     </Page.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Header -->
         <Grid Grid.Row="0" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Column="0" Text="Non-Compliant Devices by Country" 
-                       FontSize="18" FontWeight="Bold" Foreground="White" 
-                       VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="0" Text="Non-Compliant Devices by Country"
+                       FontSize="18" FontWeight="Bold" Foreground="White"
+                       VerticalAlignment="Center" />
 
-            <Button Grid.Column="1" 
-                    Content="Refresh Data" 
-                    Click="Refresh_Click" 
-                    Padding="10,5" 
+            <Button Grid.Column="1"
+                    Content="Refresh Data"
+                    Click="Refresh_Click"
+                    Padding="10,5"
                     Margin="0,0,0,0"
                     Background="#0078D7"
                     Foreground="White"
-                    BorderThickness="0"/>
+                    BorderThickness="0" />
         </Grid>
 
         <!-- Main Map -->
-        <Border Grid.Row="1" 
-                Background="#333337" 
-                BorderBrush="#444444" 
-                BorderThickness="1" 
-                CornerRadius="8" 
+        <Border Grid.Row="1"
+                Background="#333337"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="8"
                 Padding="5">
             <Grid>
                 <!-- Progress overlay -->
-                <Border Background="#88000000" 
+                <Border Background="#88000000"
                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="Loading location data..." 
-                                   Foreground="White" 
-                                   FontSize="16" 
-                                   HorizontalAlignment="Center" 
-                                   Margin="0,0,0,10"/>
-                        <ProgressBar Width="200" 
-                                     Height="10" 
-                                     IsIndeterminate="True" 
-                                     Foreground="#0078D7"/>
+                        <TextBlock Text="Loading location data..."
+                                   Foreground="White"
+                                   FontSize="16"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,10" />
+                        <ProgressBar Width="200"
+                                     Height="10"
+                                     IsIndeterminate="True"
+                                     Foreground="#0078D7" />
                     </StackPanel>
                 </Border>
 
                 <!-- Bing Maps Map Control -->
-                <m:Map x:Name="MyMap" 
+                <m:Map x:Name="MyMap"
                        CredentialsProvider="{Binding BingMapsKey}"
-                       Center="{Binding MapCenter}" 
+                       Center="{Binding MapCenter}"
                        ZoomLevel="{Binding ZoomLevel}"
                        Mode="AerialWithLabels"
                        MouseLeftButtonUp="MyMap_MouseLeftButtonUp">
 
                     <!-- Device Pushpins are added in code behind -->
-
                 </m:Map>
 
                 <!-- Zoom controls -->
                 <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,10,0">
-                    <Button Content="+" Click="ZoomIn_Click" Width="30" Height="30" Margin="0,0,0,5"/>
-                    <Button Content="-" Click="ZoomOut_Click" Width="30" Height="30"/>
+                    <Button Content="+" Click="ZoomIn_Click" Width="30" Height="30" Margin="0,0,0,5" />
+                    <Button Content="-" Click="ZoomOut_Click" Width="30" Height="30" />
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Status Footer -->
-        <Border Grid.Row="2" 
-                Background="#333337" 
-                BorderBrush="#444444" 
-                BorderThickness="1" 
-                CornerRadius="4" 
-                Padding="10" 
+        <Border Grid.Row="2"
+                Background="#333337"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="10"
                 Margin="0,10,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" 
-                           Text="{Binding StatusMessage}" 
-                           Foreground="White"/>
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           Foreground="White" />
 
-                <ProgressBar Grid.Column="1" 
-                             Width="100" 
-                             Height="10" 
-                             IsIndeterminate="{Binding IsLoading}" 
-                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}" 
-                             Margin="10,0,0,0"/>
+                <ProgressBar Grid.Column="1"
+                             Width="100"
+                             Height="10"
+                             IsIndeterminate="{Binding IsLoading}"
+                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                             Margin="10,0,0,0" />
             </Grid>
         </Border>
     </Grid>

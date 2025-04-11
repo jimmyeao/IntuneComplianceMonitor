@@ -1,13 +1,10 @@
-﻿using System;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace IntuneComplianceMonitor.Models
 {
     public class ApplicationSettings
     {
-        // Default values
-        [JsonPropertyName("daysNotCheckedIn")]
-        public int DaysNotCheckedIn { get; set; } = 7;
+        #region Properties
 
         [JsonPropertyName("activeDevicesTimeframeInDays")]
         public int ActiveDevicesTimeframeInDays { get; set; } = 30;
@@ -18,18 +15,24 @@ namespace IntuneComplianceMonitor.Models
         [JsonPropertyName("autoRefreshIntervalMinutes")]
         public int AutoRefreshIntervalMinutes { get; set; } = 60;
 
-        [JsonPropertyName("lastSyncTime")]
-        public DateTime LastSyncTime { get; set; } = DateTime.MinValue;
+        // Default values
+        [JsonPropertyName("daysNotCheckedIn")]
+        public int DaysNotCheckedIn { get; set; } = 7;
 
         // Intune/Graph API credentials
         [JsonPropertyName("intuneClientId")]
         public string IntuneClientId { get; set; }
 
-        [JsonPropertyName("intuneTenantId")]
-        public string IntuneTenantId { get; set; }
-
         // No default for client secret since it's sensitive
         [JsonPropertyName("intuneClientSecret")]
         public string IntuneClientSecret { get; set; } = "";
+
+        [JsonPropertyName("intuneTenantId")]
+        public string IntuneTenantId { get; set; }
+
+        [JsonPropertyName("lastSyncTime")]
+        public DateTime LastSyncTime { get; set; } = DateTime.MinValue;
+
+        #endregion Properties
     }
 }

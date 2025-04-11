@@ -1,17 +1,21 @@
 ﻿using IntuneComplianceMonitor.ViewModels;
 using Microsoft.Maps.MapControl.WPF;
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
 
 namespace IntuneComplianceMonitor.Views
 {
     public partial class LocationPage : Page
     {
+        #region Fields
+
         private readonly LocationViewModel _viewModel;
+
+        #endregion Fields
+
+        #region Constructors
 
         public LocationPage()
         {
@@ -34,13 +38,61 @@ namespace IntuneComplianceMonitor.Views
             Loaded += LocationPage_Loaded;
         }
 
-        private void UpdateMainWindowStatus()
+        #endregion Constructors
+
+        #region Methods
+
+        // Updated method to use the new approach
+        private void AddPushpinsToMap(System.Collections.Generic.List<CountryDeviceCount> countryData)
         {
-            // Find the MainWindow and update its status
-            if (Application.Current.MainWindow is MainWindow mainWindow)
+            // Clear existing pushpins
+            MyMap.Children.Clear();
+
+            // Add a pushpin for each country using the direct method
+            foreach (var country in countryData)
             {
-                mainWindow.UpdateStatus(_viewModel.StatusMessage, _viewModel.IsLoading);
+                CreateClickablePushpin(
+                    new Location(country.Latitude, country.Longitude),
+                    country.CountryName,
+                    country.Count,
+                    country.PushpinColor
+                );
             }
+
+            // Debug output
+            System.Diagnostics.Debug.WriteLine($"Added {countryData.Count} clickable pushpins to the map");
+        }
+
+        private void CreateClickablePushpin(Location location, string countryName, int deviceCount, Color pinColor)
+        {
+            // Create a simple, directly clickable pushpin
+            Pushpin pushpin = new Pushpin();
+            pushpin.Location = location;
+            pushpin.Content = deviceCount.ToString();
+            pushpin.Background = new SolidColorBrush(pinColor);
+            pushpin.Foreground = Brushes.White;
+            pushpin.FontWeight = FontWeights.Bold;
+            pushpin.Tag = countryName;
+
+            // Use preview events which work more reliably
+            pushpin.PreviewMouseLeftButtonDown += (s, e) =>
+            {
+                // Mark the event as handled to prevent map panning
+                e.Handled = true;
+            };
+
+            pushpin.PreviewMouseLeftButtonUp += (s, e) =>
+            {
+                // Navigate to devices view for this country
+                NavigateToDevicesWithCountryFilter(countryName);
+                e.Handled = true;
+            };
+
+            // Add tooltip
+            ToolTipService.SetToolTip(pushpin, $"{countryName}: {deviceCount} devices");
+
+            // Add to map
+            MyMap.Children.Add(pushpin);
         }
 
         private async void LocationPage_Loaded(object sender, RoutedEventArgs e)
@@ -79,58 +131,6 @@ namespace IntuneComplianceMonitor.Views
             }
         }
 
-        private void CreateClickablePushpin(Location location, string countryName, int deviceCount, Color pinColor)
-        {
-            // Create a simple, directly clickable pushpin
-            Pushpin pushpin = new Pushpin();
-            pushpin.Location = location;
-            pushpin.Content = deviceCount.ToString();
-            pushpin.Background = new SolidColorBrush(pinColor);
-            pushpin.Foreground = Brushes.White;
-            pushpin.FontWeight = FontWeights.Bold;
-            pushpin.Tag = countryName;
-
-            // Use preview events which work more reliably
-            pushpin.PreviewMouseLeftButtonDown += (s, e) =>
-            {
-                // Mark the event as handled to prevent map panning
-                e.Handled = true;
-            };
-
-            pushpin.PreviewMouseLeftButtonUp += (s, e) =>
-            {
-                // Navigate to devices view for this country
-                NavigateToDevicesWithCountryFilter(countryName);
-                e.Handled = true;
-            };
-
-            // Add tooltip
-            ToolTipService.SetToolTip(pushpin, $"{countryName}: {deviceCount} devices");
-
-            // Add to map
-            MyMap.Children.Add(pushpin);
-        }
-
-        // Updated method to use the new approach
-        private void AddPushpinsToMap(System.Collections.Generic.List<CountryDeviceCount> countryData)
-        {
-            // Clear existing pushpins
-            MyMap.Children.Clear();
-
-            // Add a pushpin for each country using the direct method
-            foreach (var country in countryData)
-            {
-                CreateClickablePushpin(
-                    new Location(country.Latitude, country.Longitude),
-                    country.CountryName,
-                    country.Count,
-                    country.PushpinColor
-                );
-            }
-
-            // Debug output
-            System.Diagnostics.Debug.WriteLine($"Added {countryData.Count} clickable pushpins to the map");
-        }
         private void MyMap_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             // Check if we hit a pushpin
@@ -157,17 +157,6 @@ namespace IntuneComplianceMonitor.Views
                     // Move up the visual tree
                     depObj = VisualTreeHelper.GetParent(depObj);
                 }
-            }
-        }
-        private void Pushpin_Click(object sender, MouseButtonEventArgs e)
-        {
-            if (sender is Pushpin pushpin && pushpin.Tag is string countryName)
-            {
-                // Navigate to the Devices page with country filter
-                NavigateToDevicesWithCountryFilter(countryName);
-
-                // Mark the event as handled
-                e.Handled = true;
             }
         }
 
@@ -217,6 +206,19 @@ namespace IntuneComplianceMonitor.Views
                     "Navigation Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        private void Pushpin_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Pushpin pushpin && pushpin.Tag is string countryName)
+            {
+                // Navigate to the Devices page with country filter
+                NavigateToDevicesWithCountryFilter(countryName);
+
+                // Mark the event as handled
+                e.Handled = true;
+            }
+        }
+
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
             // Show a loading window during refresh
@@ -256,6 +258,14 @@ namespace IntuneComplianceMonitor.Views
             }
         }
 
+        private void UpdateMainWindowStatus()
+        {
+            // Find the MainWindow and update its status
+            if (Application.Current.MainWindow is MainWindow mainWindow)
+            {
+                mainWindow.UpdateStatus(_viewModel.StatusMessage, _viewModel.IsLoading);
+            }
+        }
         private void ZoomIn_Click(object sender, RoutedEventArgs e)
         {
             _viewModel.ZoomLevel += 0.5;
@@ -265,5 +275,7 @@ namespace IntuneComplianceMonitor.Views
         {
             _viewModel.ZoomLevel -= 0.5;
         }
+
+        #endregion Methods
     }
 }

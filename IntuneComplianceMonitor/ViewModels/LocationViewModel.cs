@@ -1,23 +1,38 @@
-﻿using IntuneComplianceMonitor.Services;
-using Microsoft.Maps.MapControl.WPF;
-using System;
-using System.Collections.Generic;
+﻿using Microsoft.Maps.MapControl.WPF;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 
 namespace IntuneComplianceMonitor.ViewModels
 {
+    // Class to hold country device count data
+    public class CountryDeviceCount
+    {
+        #region Properties
+
+        public int Count { get; set; }
+        public string CountryName { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public Color PushpinColor { get; set; }
+
+        #endregion Properties
+    }
+
     public class LocationViewModel : INotifyPropertyChanged
     {
-        private bool _isLoading;
-        private string _statusMessage;
-        private Location _mapCenter;
-        private double _zoomLevel;
+        #region Fields
+
         private string _bingMapsKey;
+        private bool _isLoading;
+        private Location _mapCenter;
+        private string _statusMessage;
+        private double _zoomLevel;
+
+        #endregion Fields
+
+        #region Constructors
 
         public LocationViewModel()
         {
@@ -28,6 +43,26 @@ namespace IntuneComplianceMonitor.ViewModels
             // You can get a free Bing Maps key at https://www.bingmapsportal.com/
             // For development and testing purposes only
             BingMapsKey = "AqYfEVmxL6zHsAMqY33Tx4rNQF81oBsSqmWf7pNPl_2tF7W7Lxv2Lkh1DKZWQ7bT";
+        }
+
+        #endregion Constructors
+
+        #region Events
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        #endregion Events
+
+        #region Properties
+
+        public string BingMapsKey
+        {
+            get => _bingMapsKey;
+            set
+            {
+                _bingMapsKey = value;
+                OnPropertyChanged();
+            }
         }
 
         public bool IsLoading
@@ -43,6 +78,16 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
+        public Location MapCenter
+        {
+            get => _mapCenter;
+            set
+            {
+                _mapCenter = value;
+                OnPropertyChanged();
+            }
+        }
+
         public string StatusMessage
         {
             get => _statusMessage;
@@ -55,17 +100,6 @@ namespace IntuneComplianceMonitor.ViewModels
                 }
             }
         }
-
-        public Location MapCenter
-        {
-            get => _mapCenter;
-            set
-            {
-                _mapCenter = value;
-                OnPropertyChanged();
-            }
-        }
-
         public double ZoomLevel
         {
             get => _zoomLevel;
@@ -76,15 +110,9 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public string BingMapsKey
-        {
-            get => _bingMapsKey;
-            set
-            {
-                _bingMapsKey = value;
-                OnPropertyChanged();
-            }
-        }
+        #endregion Properties
+
+        #region Methods
 
         public async Task<List<CountryDeviceCount>> LoadDataAsync(bool forceRefresh = false)
         {
@@ -191,7 +219,8 @@ namespace IntuneComplianceMonitor.ViewModels
                 System.Diagnostics.Debug.WriteLine(ex.StackTrace);
 
                 // Display error message to user
-                Application.Current.Dispatcher.Invoke(() => {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
                     MessageBox.Show($"Error loading device locations: {ex.Message}",
                         "Map Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 });
@@ -202,6 +231,11 @@ namespace IntuneComplianceMonitor.ViewModels
             {
                 IsLoading = false;
             }
+        }
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
         // Get appropriate color based on device count
@@ -217,6 +251,68 @@ namespace IntuneComplianceMonitor.ViewModels
                 return Colors.LightBlue;
             else
                 return Colors.Green;
+        }
+
+        // This dictionary contains country names and their latitude/longitude coordinates
+        private Dictionary<string, (double Latitude, double Longitude)> GetCountryCapitalCoordinates()
+        {
+            // This is a simplified map of country names to their approximate center coordinates
+            // Format is CountryName -> (Latitude, Longitude)
+            return new Dictionary<string, (double Latitude, double Longitude)>(StringComparer.OrdinalIgnoreCase)
+            {
+                // Major regions your data shows
+                { "United Kingdom", (51.5074, -0.1278) },    // London
+                { "Romania", (44.4268, 26.1025) },           // Bucharest
+                { "United States", (38.8951, -77.0364) },    // Washington DC
+                { "Malaysia", (3.1390, 101.6869) },          // Kuala Lumpur
+                { "Vietnam", (21.0285, 105.8342) },          // Hanoi
+                { "Ireland", (53.3498, -6.2603) },           // Dublin
+                { "India", (28.6139, 77.2090) },             // New Delhi
+                { "Australia", (-35.2809, 149.1300) },       // Canberra
+                { "New Zealand", (-41.2865, 174.7762) },     // Wellington
+                { "Spain", (40.4168, -3.7038) },             // Madrid
+                { "Denmark", (55.6761, 12.5683) },           // Copenhagen
+                { "Tunisia", (36.8065, 10.1815) },           // Tunis
+                { "Germany", (52.5200, 13.4050) },           // Berlin
+                { "Singapore", (1.3521, 103.8198) },         // Singapore
+                { "Brazil", (-15.7801, -47.9292) },          // Brasília
+                { "Sri Lanka", (6.9271, 79.8612) },          // Colombo
+                { "Sweden", (59.3293, 18.0686) },            // Stockholm
+                { "France", (48.8566, 2.3522) },             // Paris
+                { "Portugal", (38.7223, -9.1393) },          // Lisbon
+                { "Poland", (52.2297, 21.0122) },            // Warsaw
+
+                // Add more countries as needed
+                { "Canada", (45.4215, -75.6972) },           // Ottawa
+                { "Mexico", (19.4326, -99.1332) },           // Mexico City
+                { "Italy", (41.9028, 12.4964) },             // Rome
+                { "China", (39.9042, 116.4074) },            // Beijing
+                { "Japan", (35.6895, 139.6917) },            // Tokyo
+                { "South Korea", (37.5665, 126.9780) },      // Seoul
+                { "Russia", (55.7558, 37.6173) },            // Moscow
+                { "South Africa", (-26.2041, 28.0473) },     // Johannesburg
+                { "Netherlands", (52.3676, 4.9041) },        // Amsterdam
+                { "Belgium", (50.8503, 4.3517) },            // Brussels
+                { "Switzerland", (46.9480, 7.4474) },        // Bern
+                { "Austria", (48.2082, 16.3738) },           // Vienna
+                { "Norway", (59.9139, 10.7522) },            // Oslo
+                { "Finland", (60.1699, 24.9384) },           // Helsinki
+                { "Greece", (37.9838, 23.7275) },            // Athens
+                { "Turkey", (39.9334, 32.8597) },            // Ankara
+                { "UAE", (24.4539, 54.3773) },               // Abu Dhabi
+                { "Saudi Arabia", (24.6877, 46.7219) },      // Riyadh
+                { "Israel", (31.7683, 35.2137) },            // Jerusalem
+                { "Argentina", (-34.6037, -58.3816) },       // Buenos Aires
+                { "Chile", (-33.4489, -70.6693) },           // Santiago
+                { "Colombia", (4.7110, -74.0721) },          // Bogotá
+                { "Peru", (-12.0464, -77.0428) },            // Lima
+                { "Indonesia", (-6.2088, 106.8456) },        // Jakarta
+                { "Thailand", (13.7563, 100.5018) },         // Bangkok
+                { "Philippines", (14.5995, 120.9842) },      // Manila
+                { "Egypt", (30.0444, 31.2357) },             // Cairo
+                { "Nigeria", (9.0765, 7.3986) },             // Abuja
+                { "Kenya", (-1.2921, 36.8219) }              // Nairobi
+            };
         }
 
         // Helper method to normalize country names
@@ -267,82 +363,6 @@ namespace IntuneComplianceMonitor.ViewModels
             return country;
         }
 
-        // This dictionary contains country names and their latitude/longitude coordinates
-        private Dictionary<string, (double Latitude, double Longitude)> GetCountryCapitalCoordinates()
-        {
-            // This is a simplified map of country names to their approximate center coordinates
-            // Format is CountryName -> (Latitude, Longitude)
-            return new Dictionary<string, (double Latitude, double Longitude)>(StringComparer.OrdinalIgnoreCase)
-            {
-                // Major regions your data shows
-                { "United Kingdom", (51.5074, -0.1278) },    // London
-                { "Romania", (44.4268, 26.1025) },           // Bucharest
-                { "United States", (38.8951, -77.0364) },    // Washington DC
-                { "Malaysia", (3.1390, 101.6869) },          // Kuala Lumpur
-                { "Vietnam", (21.0285, 105.8342) },          // Hanoi
-                { "Ireland", (53.3498, -6.2603) },           // Dublin
-                { "India", (28.6139, 77.2090) },             // New Delhi
-                { "Australia", (-35.2809, 149.1300) },       // Canberra
-                { "New Zealand", (-41.2865, 174.7762) },     // Wellington
-                { "Spain", (40.4168, -3.7038) },             // Madrid
-                { "Denmark", (55.6761, 12.5683) },           // Copenhagen
-                { "Tunisia", (36.8065, 10.1815) },           // Tunis
-                { "Germany", (52.5200, 13.4050) },           // Berlin
-                { "Singapore", (1.3521, 103.8198) },         // Singapore
-                { "Brazil", (-15.7801, -47.9292) },          // Brasília
-                { "Sri Lanka", (6.9271, 79.8612) },          // Colombo
-                { "Sweden", (59.3293, 18.0686) },            // Stockholm
-                { "France", (48.8566, 2.3522) },             // Paris
-                { "Portugal", (38.7223, -9.1393) },          // Lisbon
-                { "Poland", (52.2297, 21.0122) },            // Warsaw
-                
-                // Add more countries as needed
-                { "Canada", (45.4215, -75.6972) },           // Ottawa
-                { "Mexico", (19.4326, -99.1332) },           // Mexico City
-                { "Italy", (41.9028, 12.4964) },             // Rome
-                { "China", (39.9042, 116.4074) },            // Beijing
-                { "Japan", (35.6895, 139.6917) },            // Tokyo
-                { "South Korea", (37.5665, 126.9780) },      // Seoul
-                { "Russia", (55.7558, 37.6173) },            // Moscow
-                { "South Africa", (-26.2041, 28.0473) },     // Johannesburg
-                { "Netherlands", (52.3676, 4.9041) },        // Amsterdam
-                { "Belgium", (50.8503, 4.3517) },            // Brussels
-                { "Switzerland", (46.9480, 7.4474) },        // Bern
-                { "Austria", (48.2082, 16.3738) },           // Vienna
-                { "Norway", (59.9139, 10.7522) },            // Oslo
-                { "Finland", (60.1699, 24.9384) },           // Helsinki
-                { "Greece", (37.9838, 23.7275) },            // Athens
-                { "Turkey", (39.9334, 32.8597) },            // Ankara
-                { "UAE", (24.4539, 54.3773) },               // Abu Dhabi
-                { "Saudi Arabia", (24.6877, 46.7219) },      // Riyadh
-                { "Israel", (31.7683, 35.2137) },            // Jerusalem
-                { "Argentina", (-34.6037, -58.3816) },       // Buenos Aires
-                { "Chile", (-33.4489, -70.6693) },           // Santiago
-                { "Colombia", (4.7110, -74.0721) },          // Bogotá
-                { "Peru", (-12.0464, -77.0428) },            // Lima
-                { "Indonesia", (-6.2088, 106.8456) },        // Jakarta
-                { "Thailand", (13.7563, 100.5018) },         // Bangkok
-                { "Philippines", (14.5995, 120.9842) },      // Manila
-                { "Egypt", (30.0444, 31.2357) },             // Cairo
-                { "Nigeria", (9.0765, 7.3986) },             // Abuja
-                { "Kenya", (-1.2921, 36.8219) }              // Nairobi
-            };
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-    }
-
-    // Class to hold country device count data
-    public class CountryDeviceCount
-    {
-        public string CountryName { get; set; }
-        public int Count { get; set; }
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
-        public Color PushpinColor { get; set; }
+        #endregion Methods
     }
 }

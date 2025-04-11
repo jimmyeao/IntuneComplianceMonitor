@@ -6,20 +6,35 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Interop;
 
+// Updated to include cache creation time
+public class TokenCacheData
+{
+    #region Properties
+
+    public DateTime CacheCreated { get; set; }
+    public DateTime Expiration { get; set; }
+    public string Token { get; set; }
+
+    #endregion Properties
+}
+
 public class TokenProvider : IAccessTokenProvider
 {
+    #region Fields
+
+    // Extend token cache duration (e.g., 14 days)
+    private const int TOKEN_CACHE_DAYS = 14;
+
+    private const string TOKEN_CACHE_FILE = "token_cache.json";
     private readonly IPublicClientApplication _msalClient;
     private readonly string[] _scopes;
     private readonly SemaphoreSlim _tokenSemaphore = new SemaphoreSlim(1, 1);
     private string _cachedToken = null;
     private DateTime _tokenExpiration = DateTime.MinValue;
-    private const string TOKEN_CACHE_FILE = "token_cache.json";
-    public DateTime TokenExpires => _tokenExpiration;
-    public string CurrentUserPrincipalName { get; set; }
-    public TimeSpan TimeUntilExpiry => _tokenExpiration - DateTime.Now;
 
-    // Extend token cache duration (e.g., 14 days)
-    private const int TOKEN_CACHE_DAYS = 14;
+    #endregion Fields
+
+    #region Constructors
 
     public TokenProvider(IPublicClientApplication msalClient, string[] scopes)
     {
@@ -33,9 +48,87 @@ public class TokenProvider : IAccessTokenProvider
 
         // Load persisted token on initialization
         LoadPersistedToken();
-       
-
     }
+
+    #endregion Constructors
+
+    #region Properties
+
+    public AllowedHostsValidator AllowedHostsValidator { get; }
+    public string CurrentUserPrincipalName { get; set; }
+    public TimeSpan TimeUntilExpiry => _tokenExpiration - DateTime.Now;
+    public DateTime TokenExpires => _tokenExpiration;
+
+    #endregion Properties
+
+    #region Methods
+
+    public async Task<string> GetAuthorizationTokenAsync(
+        Uri uri,
+        Dictionary<string, object> additionalAuthenticationContext = null,
+        CancellationToken cancellationToken = default)
+    {
+        await _tokenSemaphore.WaitAsync(cancellationToken);
+
+        try
+        {
+            // Check for valid cached token
+            if (!string.IsNullOrEmpty(_cachedToken) &&
+                _tokenExpiration > DateTime.Now.AddMinutes(5) &&
+                DateTime.UtcNow < _tokenExpiration.AddDays(TOKEN_CACHE_DAYS))
+            {
+                System.Diagnostics.Debug.WriteLine($"Using cached token, valid until {_tokenExpiration}");
+                return _cachedToken;
+            }
+
+            var accounts = await _msalClient.GetAccountsAsync();
+
+            AuthenticationResult result = null;
+            try
+            {
+                // Try silent authentication first
+                if (accounts.Any())
+                {
+                    result = await _msalClient
+                        .AcquireTokenSilent(_scopes, accounts.FirstOrDefault())
+                        .ExecuteAsync(cancellationToken);
+                }
+                else
+                {
+                    throw new MsalUiRequiredException("no_accounts", "No accounts found");
+                }
+            }
+            catch (MsalUiRequiredException)
+            {
+                // Fallback to interactive authentication
+                result = await _msalClient
+                    .AcquireTokenInteractive(_scopes)
+                    .WithUseEmbeddedWebView(true)
+                    .WithParentActivityOrWindow(new WindowInteropHelper(Application.Current.MainWindow).Handle)
+                    .ExecuteAsync(cancellationToken);
+            }
+
+            // Cache and persist the token
+            _cachedToken = result.AccessToken;
+            _tokenExpiration = result.ExpiresOn.DateTime;
+            CurrentUserPrincipalName = result.Account?.Username ?? "Unknown";
+            System.Diagnostics.Debug.WriteLine($"Signed in as: {CurrentUserPrincipalName}");
+
+            PersistToken(_cachedToken, _tokenExpiration);
+            CurrentUserPrincipalName = result.Account?.Username ?? "Unknown";
+            return _cachedToken;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Token acquisition error: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            _tokenSemaphore.Release();
+        }
+    }
+
     public async Task LoadAccountInfoAsync()
     {
         try
@@ -57,7 +150,6 @@ public class TokenProvider : IAccessTokenProvider
             System.Diagnostics.Debug.WriteLine($"[MSAL] Error loading account info: {ex.Message}");
         }
     }
-
 
     public async Task LogoutAsync()
     {
@@ -143,81 +235,5 @@ public class TokenProvider : IAccessTokenProvider
         }
     }
 
-    public async Task<string> GetAuthorizationTokenAsync(
-        Uri uri,
-        Dictionary<string, object> additionalAuthenticationContext = null,
-        CancellationToken cancellationToken = default)
-    {
-        await _tokenSemaphore.WaitAsync(cancellationToken);
-
-        try
-        {
-            // Check for valid cached token
-            if (!string.IsNullOrEmpty(_cachedToken) &&
-                _tokenExpiration > DateTime.Now.AddMinutes(5) &&
-                DateTime.UtcNow < _tokenExpiration.AddDays(TOKEN_CACHE_DAYS))
-            {
-                System.Diagnostics.Debug.WriteLine($"Using cached token, valid until {_tokenExpiration}");
-                return _cachedToken;
-                
-
-            }
-
-            var accounts = await _msalClient.GetAccountsAsync();
-
-            AuthenticationResult result = null;
-            try
-            {
-                // Try silent authentication first
-                if (accounts.Any())
-                {
-                    result = await _msalClient
-                        .AcquireTokenSilent(_scopes, accounts.FirstOrDefault())
-                        .ExecuteAsync(cancellationToken);
-                }
-                else
-                {
-                    throw new MsalUiRequiredException("no_accounts", "No accounts found");
-                }
-            }
-            catch (MsalUiRequiredException)
-            {
-                // Fallback to interactive authentication
-                result = await _msalClient
-                    .AcquireTokenInteractive(_scopes)
-                    .WithUseEmbeddedWebView(true)
-                    .WithParentActivityOrWindow(new WindowInteropHelper(Application.Current.MainWindow).Handle)
-                    .ExecuteAsync(cancellationToken);
-            }
-
-            // Cache and persist the token
-            _cachedToken = result.AccessToken;
-            _tokenExpiration = result.ExpiresOn.DateTime;
-            CurrentUserPrincipalName = result.Account?.Username ?? "Unknown";
-            System.Diagnostics.Debug.WriteLine($"Signed in as: {CurrentUserPrincipalName}");
-
-            PersistToken(_cachedToken, _tokenExpiration);
-            CurrentUserPrincipalName = result.Account?.Username ?? "Unknown";
-            return _cachedToken;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Token acquisition error: {ex.Message}");
-            throw;
-        }
-        finally
-        {
-            _tokenSemaphore.Release();
-        }
-    }
-
-    public AllowedHostsValidator AllowedHostsValidator { get; }
-}
-
-// Updated to include cache creation time
-public class TokenCacheData
-{
-    public string Token { get; set; }
-    public DateTime Expiration { get; set; }
-    public DateTime CacheCreated { get; set; }
+    #endregion Methods
 }

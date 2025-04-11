@@ -1,10 +1,6 @@
 ﻿using IntuneComplianceMonitor.ViewModels;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace IntuneComplianceMonitor.Services
 {
@@ -16,6 +12,7 @@ namespace IntuneComplianceMonitor.Services
         private const int CacheExpiryHours = 24;
         private const string CompliancePolicyCacheFile = "compliancePolicies.json";
         private const string DevicesCacheFile = "devices.json";
+        private const string LocationCacheFile = "deviceLocations.json";
         private const string StatsCacheFile = "stats.json";
 
         #endregion Fields
@@ -73,6 +70,23 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
+        public void ClearDeviceLocationCache()
+        {
+            try
+            {
+                string path = Path.Combine(CacheDirectory, LocationCacheFile);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    System.Diagnostics.Debug.WriteLine("Cleared device location cache");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error clearing location cache: {ex.Message}");
+            }
+        }
+
         public async Task<Dictionary<string, List<DeviceViewModel>>> GetCompliancePoliciesFromCacheAsync()
         {
             try
@@ -94,6 +108,39 @@ namespace IntuneComplianceMonitor.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading compliance policy cache: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<List<DeviceViewModel>> GetDeviceLocationCacheAsync()
+        {
+            try
+            {
+                string path = Path.Combine(CacheDirectory, LocationCacheFile);
+
+                // If cache file doesn't exist, return null
+                if (!File.Exists(path))
+                {
+                    System.Diagnostics.Debug.WriteLine("Location cache file does not exist");
+                    return null;
+                }
+
+                string json = await File.ReadAllTextAsync(path);
+                var data = JsonSerializer.Deserialize<DeviceLocationCacheData>(json);
+
+                // Check if cache is expired (24 hours)
+                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(CacheExpiryHours))
+                {
+                    System.Diagnostics.Debug.WriteLine("Location cache expired");
+                    return null;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"Loaded {data.Devices.Count} devices from location cache");
+                return data.Devices;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading location cache: {ex.Message}");
                 return null;
             }
         }
@@ -159,7 +206,30 @@ namespace IntuneComplianceMonitor.Services
                 return null;
             }
         }
-        private const string LocationCacheFile = "deviceLocations.json";
+
+        public async Task SaveCompliancePoliciesToCacheAsync(Dictionary<string, List<DeviceViewModel>> groupedData)
+        {
+            try
+            {
+                var data = new CompliancePolicyCacheData
+                {
+                    GroupedData = groupedData,
+                    CacheTime = DateTime.Now
+                };
+
+                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, CompliancePolicyCacheFile), json);
+                System.Diagnostics.Debug.WriteLine("Saved compliance policy data to cache");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving compliance policy cache: {ex.Message}");
+            }
+        }
 
         public async Task SaveDeviceLocationCacheAsync(List<DeviceViewModel> devices)
         {
@@ -191,79 +261,6 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
-        public async Task SaveCompliancePoliciesToCacheAsync(Dictionary<string, List<DeviceViewModel>> groupedData)
-        {
-            try
-            {
-                var data = new CompliancePolicyCacheData
-                {
-                    GroupedData = groupedData,
-                    CacheTime = DateTime.Now
-                };
-
-                var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                await File.WriteAllTextAsync(Path.Combine(CacheDirectory, CompliancePolicyCacheFile), json);
-                System.Diagnostics.Debug.WriteLine("Saved compliance policy data to cache");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error saving compliance policy cache: {ex.Message}");
-            }
-        }
-        public async Task<List<DeviceViewModel>> GetDeviceLocationCacheAsync()
-        {
-            try
-            {
-                string path = Path.Combine(CacheDirectory, LocationCacheFile);
-
-                // If cache file doesn't exist, return null
-                if (!File.Exists(path))
-                {
-                    System.Diagnostics.Debug.WriteLine("Location cache file does not exist");
-                    return null;
-                }
-
-                string json = await File.ReadAllTextAsync(path);
-                var data = JsonSerializer.Deserialize<DeviceLocationCacheData>(json);
-
-                // Check if cache is expired (24 hours)
-                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(CacheExpiryHours))
-                {
-                    System.Diagnostics.Debug.WriteLine("Location cache expired");
-                    return null;
-                }
-
-                System.Diagnostics.Debug.WriteLine($"Loaded {data.Devices.Count} devices from location cache");
-                return data.Devices;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error loading location cache: {ex.Message}");
-                return null;
-            }
-        }
-
-        public void ClearDeviceLocationCache()
-        {
-            try
-            {
-                string path = Path.Combine(CacheDirectory, LocationCacheFile);
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                    System.Diagnostics.Debug.WriteLine("Cleared device location cache");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error clearing location cache: {ex.Message}");
-            }
-        }
-
         public async Task SaveDevicesToCacheAsync(List<DeviceViewModel> devices)
         {
             try
@@ -287,6 +284,7 @@ namespace IntuneComplianceMonitor.Services
                 System.Diagnostics.Debug.WriteLine($"Error saving devices to cache: {ex.Message}");
             }
         }
+
         public async Task SaveStatsToCacheAsync(
             int totalDevices,
             Dictionary<string, int> devicesByType,
@@ -329,6 +327,7 @@ namespace IntuneComplianceMonitor.Services
 
             #endregion Properties
         }
+
         public class DeviceLocationCacheData
         {
             #region Properties

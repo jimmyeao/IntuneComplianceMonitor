@@ -1,12 +1,18 @@
 ﻿using IntuneComplianceMonitor.ViewModels;
-using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace IntuneComplianceMonitor.Views
 {
     public partial class DashboardPage : Page
     {
+        #region Fields
+
         private readonly DashboardViewModel _viewModel;
+
+        #endregion Fields
+
+        #region Constructors
 
         public DashboardPage()
         {
@@ -15,7 +21,8 @@ namespace IntuneComplianceMonitor.Views
             DataContext = _viewModel;
 
             // Set up status message updates
-            _viewModel.PropertyChanged += (s, e) => {
+            _viewModel.PropertyChanged += (s, e) =>
+            {
                 if (e.PropertyName == "StatusMessage" || e.PropertyName == "IsLoading")
                 {
                     UpdateMainWindowStatus();
@@ -24,6 +31,10 @@ namespace IntuneComplianceMonitor.Views
 
             Loaded += DashboardPage_Loaded;
         }
+
+        #endregion Constructors
+
+        #region Methods
 
         private void DashboardPage_Loaded(object sender, System.Windows.RoutedEventArgs e)
         {
@@ -38,5 +49,7 @@ namespace IntuneComplianceMonitor.Views
                 mainWindow.UpdateStatus(_viewModel.StatusMessage, _viewModel.IsLoading);
             }
         }
+
+        #endregion Methods
     }
 }

@@ -1,15 +1,21 @@
 ﻿using IntuneComplianceMonitor.ViewModels;
-using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Media;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace IntuneComplianceMonitor.Views
 {
     public partial class DevicesPage : Page
     {
+        #region Fields
+
         private readonly DashboardViewModel _viewModel;
+
+        #endregion Fields
+
+        #region Constructors
 
         public DevicesPage()
         {
@@ -18,7 +24,8 @@ namespace IntuneComplianceMonitor.Views
             DataContext = _viewModel;
 
             // Set up status message updates
-            _viewModel.PropertyChanged += (s, e) => {
+            _viewModel.PropertyChanged += (s, e) =>
+            {
                 if (e.PropertyName == "StatusMessage" || e.PropertyName == "IsLoading")
                 {
                     UpdateMainWindowStatus();
@@ -27,6 +34,11 @@ namespace IntuneComplianceMonitor.Views
 
             Loaded += DevicesPage_Loaded;
         }
+
+        #endregion Constructors
+
+        #region Methods
+
         private void DevicesGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             // Check if the click came from a column header — allow built-in sorting to work
@@ -61,5 +73,7 @@ namespace IntuneComplianceMonitor.Views
                 mainWindow.UpdateStatus(_viewModel.StatusMessage, _viewModel.IsLoading);
             }
         }
+
+        #endregion Methods
     }
 }

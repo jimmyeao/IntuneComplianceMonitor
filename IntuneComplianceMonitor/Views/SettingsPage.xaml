@@ -5,302 +5,302 @@
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Settings Form -->
-        <Border Grid.Row="0" 
-                Background="#333337" 
-                BorderBrush="#444444" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                Padding="15" 
+        <Border Grid.Row="0"
+                Background="#333337"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="15"
                 Margin="5,5,5,15">
             <Border.Effect>
-                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3"/>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
             </Border.Effect>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" 
-                           Text="Application Settings" 
-                           FontSize="16" 
-                           FontWeight="SemiBold" 
-                           Margin="0,0,0,10" 
-                           Foreground="White"/>
+                <TextBlock Grid.Row="0"
+                           Text="Application Settings"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10"
+                           Foreground="White" />
 
                 <StackPanel Grid.Row="1" Margin="0,10,0,0">
                     <!-- Device Data Settings -->
-                    <GroupBox Header="Device Data Settings" 
-                              Margin="0,0,0,15" 
-                              Padding="10" 
-                              Foreground="White" 
-                              Background="#2A2A2E" 
+                    <GroupBox Header="Device Data Settings"
+                              Margin="0,0,0,15"
+                              Padding="10"
+                              Foreground="White"
+                              Background="#2A2A2E"
                               BorderBrush="#444444">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       Text="Days Not Checked In:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,15,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="Days Not Checked In:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"
+                                       Foreground="White" />
 
                             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
-                                <TextBox Text="{Binding DaysNotCheckedIn}" 
-                                         Width="80" 
-                                         VerticalAlignment="Center" 
-                                         Padding="8,6" 
-                                         Margin="0,5,10,5" 
-                                         Background="#252529" 
-                                         Foreground="White" 
-                                         BorderBrush="#444444"/>
+                                <TextBox Text="{Binding DaysNotCheckedIn}"
+                                         Width="80"
+                                         VerticalAlignment="Center"
+                                         Padding="8,6"
+                                         Margin="0,5,10,5"
+                                         Background="#252529"
+                                         Foreground="White"
+                                         BorderBrush="#444444" />
 
-                                <TextBlock Text="days" 
-                                           VerticalAlignment="Center" 
-                                           Foreground="White"/>
+                                <TextBlock Text="days"
+                                           VerticalAlignment="Center"
+                                           Foreground="White" />
                             </StackPanel>
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" 
-                                       Text="Active Devices Timeframe:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,15,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="Active Devices Timeframe:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"
+                                       Foreground="White" />
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
-                                <TextBox Text="{Binding ActiveDevicesTimeframe}" 
-                                         Width="80" 
-                                         VerticalAlignment="Center" 
-                                         Padding="8,6" 
-                                         Margin="0,5,10,5" 
-                                         Background="#252529" 
-                                         Foreground="White" 
-                                         BorderBrush="#444444"/>
+                                <TextBox Text="{Binding ActiveDevicesTimeframe}"
+                                         Width="80"
+                                         VerticalAlignment="Center"
+                                         Padding="8,6"
+                                         Margin="0,5,10,5"
+                                         Background="#252529"
+                                         Foreground="White"
+                                         BorderBrush="#444444" />
 
-                                <TextBlock Text="days" 
-                                           VerticalAlignment="Center" 
-                                           Foreground="White"/>
+                                <TextBlock Text="days"
+                                           VerticalAlignment="Center"
+                                           Foreground="White" />
                             </StackPanel>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
-                                       Text="Note: Only devices that have checked in within the 'Active Devices Timeframe' will be included in device counts and statistics." 
-                                       TextWrapping="Wrap" 
-                                       Margin="0,10,0,0" 
-                                       Foreground="#BBBBBB" 
-                                       FontStyle="Italic"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="Note: Only devices that have checked in within the 'Active Devices Timeframe' will be included in device counts and statistics."
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,0"
+                                       Foreground="#BBBBBB"
+                                       FontStyle="Italic" />
                         </Grid>
                     </GroupBox>
 
                     <!-- Auto Refresh Settings -->
-                    <GroupBox Header="Auto Refresh Settings" 
-                              Margin="0,0,0,15" 
-                              Padding="10" 
-                              Foreground="White" 
-                              Background="#2A2A2E" 
+                    <GroupBox Header="Auto Refresh Settings"
+                              Margin="0,0,0,15"
+                              Padding="10"
+                              Foreground="White"
+                              Background="#2A2A2E"
                               BorderBrush="#444444">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" 
-                                      Content="Enable Auto Refresh" 
-                                      IsChecked="{Binding AutoRefreshEnabled}" 
-                                      Margin="0,0,0,10" 
-                                      Foreground="White"/>
+                            <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                      Content="Enable Auto Refresh"
+                                      IsChecked="{Binding AutoRefreshEnabled}"
+                                      Margin="0,0,0,10"
+                                      Foreground="White" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" 
-                                       Text="Refresh Interval:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,15,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="Refresh Interval:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"
+                                       Foreground="White" />
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
-                                <TextBox Text="{Binding AutoRefreshInterval}" 
-                                         Width="80" 
-                                         VerticalAlignment="Center" 
-                                         Padding="8,6" 
+                                <TextBox Text="{Binding AutoRefreshInterval}"
+                                         Width="80"
+                                         VerticalAlignment="Center"
+                                         Padding="8,6"
                                          Margin="0,5,10,5"
-                                         IsEnabled="{Binding AutoRefreshEnabled}" 
-                                         Background="#252529" 
-                                         Foreground="White" 
-                                         BorderBrush="#444444"/>
+                                         IsEnabled="{Binding AutoRefreshEnabled}"
+                                         Background="#252529"
+                                         Foreground="White"
+                                         BorderBrush="#444444" />
 
-                                <TextBlock Text="minutes" 
-                                           VerticalAlignment="Center" 
-                                           Foreground="White"/>
+                                <TextBlock Text="minutes"
+                                           VerticalAlignment="Center"
+                                           Foreground="White" />
                             </StackPanel>
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" 
-                                       Text="Last Sync Time:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,10,15,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="Last Sync Time:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,10,15,0"
+                                       Foreground="White" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="1" 
-                                       Text="{Binding LastSyncTimeDisplay}" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,10,0,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1"
+                                       Text="{Binding LastSyncTimeDisplay}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,10,0,0"
+                                       Foreground="White" />
                         </Grid>
                     </GroupBox>
 
                     <!-- Intune API Settings -->
-                    <GroupBox Header="Intune API Settings" 
-                              Margin="0,0,0,15" 
-                              Padding="10" 
-                              Foreground="White" 
-                              Background="#2A2A2E" 
+                    <GroupBox Header="Intune API Settings"
+                              Margin="0,0,0,15"
+                              Padding="10"
+                              Foreground="White"
+                              Background="#2A2A2E"
                               BorderBrush="#444444">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       Text="Client ID:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,15,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0"
+                                       Text="Client ID:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"
+                                       Foreground="White" />
 
-                            <TextBox Grid.Row="0" Grid.Column="1" 
-                                     Text="{Binding IntuneClientId}" 
-                                     VerticalAlignment="Center" 
-                                     Padding="8,6" 
-                                     Margin="0,5,0,5" 
-                                     Background="#252529" 
-                                     Foreground="White" 
-                                     BorderBrush="#444444"/>
+                            <TextBox Grid.Row="0" Grid.Column="1"
+                                     Text="{Binding IntuneClientId}"
+                                     VerticalAlignment="Center"
+                                     Padding="8,6"
+                                     Margin="0,5,0,5"
+                                     Background="#252529"
+                                     Foreground="White"
+                                     BorderBrush="#444444" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" 
-                                       Text="Tenant ID:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,15,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="Tenant ID:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"
+                                       Foreground="White" />
 
-                            <TextBox Grid.Row="1" Grid.Column="1" 
-                                     Text="{Binding IntuneTenantId}" 
-                                     VerticalAlignment="Center" 
-                                     Padding="8,6" 
-                                     Margin="0,5,0,5" 
-                                     Background="#252529" 
-                                     Foreground="White" 
-                                     BorderBrush="#444444"/>
+                            <TextBox Grid.Row="1" Grid.Column="1"
+                                     Text="{Binding IntuneTenantId}"
+                                     VerticalAlignment="Center"
+                                     Padding="8,6"
+                                     Margin="0,5,0,5"
+                                     Background="#252529"
+                                     Foreground="White"
+                                     BorderBrush="#444444" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" 
-                                       Text="Client Secret:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,15,0" 
-                                       Foreground="White"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0"
+                                       Text="Client Secret:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,15,0"
+                                       Foreground="White" />
 
-                            <PasswordBox Grid.Row="2" Grid.Column="1" 
+                            <PasswordBox Grid.Row="2" Grid.Column="1"
                                          x:Name="ClientSecretBox"
-                                         VerticalAlignment="Center" 
-                                         Padding="8,6" 
-                                         Margin="0,5,0,5" 
-                                         Background="#252529" 
-                                         Foreground="White" 
-                                         BorderBrush="#444444"/>
+                                         VerticalAlignment="Center"
+                                         Padding="8,6"
+                                         Margin="0,5,0,5"
+                                         Background="#252529"
+                                         Foreground="White"
+                                         BorderBrush="#444444" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" 
-                                       Text="Note: These settings are required to connect to the Microsoft Graph API for Intune. Client Secret is stored in encrypted form." 
-                                       TextWrapping="Wrap" 
-                                       Margin="0,10,0,0" 
-                                       Foreground="#BBBBBB" 
-                                       FontStyle="Italic"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Text="Note: These settings are required to connect to the Microsoft Graph API for Intune. Client Secret is stored in encrypted form."
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,0"
+                                       Foreground="#BBBBBB"
+                                       FontStyle="Italic" />
                         </Grid>
                     </GroupBox>
 
                     <!-- Action Buttons -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                        <Button Content="Reset to Defaults" 
-                                Command="{Binding ResetToDefaultsCommand}" 
-                                Padding="15,8" 
-                                Margin="0,0,15,0" 
+                        <Button Content="Reset to Defaults"
+                                Command="{Binding ResetToDefaultsCommand}"
+                                Padding="15,8"
+                                Margin="0,0,15,0"
                                 Width="150"
                                 Background="#3E3E42"
                                 Foreground="White"
                                 BorderThickness="1"
-                                BorderBrush="#555555"/>
+                                BorderBrush="#555555" />
 
-                        <Button Content="Save Settings" 
-                                Command="{Binding SaveCommand}" 
-                                Background="#0078D7" 
-                                Foreground="White" 
-                                Padding="15,8" 
-                                Width="150" 
-                                BorderThickness="0"/>
+                        <Button Content="Save Settings"
+                                Command="{Binding SaveCommand}"
+                                Background="#0078D7"
+                                Foreground="White"
+                                Padding="15,8"
+                                Width="150"
+                                BorderThickness="0" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Help Card -->
-        <Border Grid.Row="1" 
-                Background="#333337" 
-                BorderBrush="#444444" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                Padding="15" 
+        <Border Grid.Row="1"
+                Background="#333337"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="15"
                 Margin="5,0,5,5">
             <Border.Effect>
-                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3"/>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
             </Border.Effect>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" 
-                           Text="Settings Information" 
-                           FontSize="16" 
-                           FontWeight="SemiBold" 
-                           Margin="0,0,0,10" 
-                           Foreground="White"/>
+                <TextBlock Grid.Row="0"
+                           Text="Settings Information"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10"
+                           Foreground="White" />
 
-                <TextBlock Grid.Row="1" 
-                           TextWrapping="Wrap" 
+                <TextBlock Grid.Row="1"
+                           TextWrapping="Wrap"
                            Margin="0,10,0,0"
                            Foreground="#BBBBBB">
-                    <Run Text="Days Not Checked In:" FontWeight="Bold" Foreground="White"/>
-                    <LineBreak/>
-                    <Run Text="This setting determines how many days a device must not have checked in to be counted in the 'Not Checked in Recently' metric. The default is 7 days."/>
-                    <LineBreak/>
-                    <LineBreak/>
-                    <Run Text="Active Devices Timeframe:" FontWeight="Bold" Foreground="White"/>
-                    <LineBreak/>
-                    <Run Text="This setting determines the time window for considering devices as 'active' in all metrics and counts. Only devices that have checked in within this timeframe will be included in the dashboard statistics. The default is 30 days."/>
-                    <LineBreak/>
-                    <LineBreak/>
-                    <Run Text="Auto Refresh:" FontWeight="Bold" Foreground="White"/>
-                    <LineBreak/>
-                    <Run Text="When enabled, the dashboard will automatically refresh data at the specified interval. This can help ensure you're viewing the most current information."/>
+                    <Run Text="Days Not Checked In:" FontWeight="Bold" Foreground="White" />
+                    <LineBreak />
+                    <Run Text="This setting determines how many days a device must not have checked in to be counted in the 'Not Checked in Recently' metric. The default is 7 days." />
+                    <LineBreak />
+                    <LineBreak />
+                    <Run Text="Active Devices Timeframe:" FontWeight="Bold" Foreground="White" />
+                    <LineBreak />
+                    <Run Text="This setting determines the time window for considering devices as 'active' in all metrics and counts. Only devices that have checked in within this timeframe will be included in the dashboard statistics. The default is 30 days." />
+                    <LineBreak />
+                    <LineBreak />
+                    <Run Text="Auto Refresh:" FontWeight="Bold" Foreground="White" />
+                    <LineBreak />
+                    <Run Text="When enabled, the dashboard will automatically refresh data at the specified interval. This can help ensure you're viewing the most current information." />
                 </TextBlock>
             </Grid>
         </Border>

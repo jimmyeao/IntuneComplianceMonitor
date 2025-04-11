@@ -1,25 +1,22 @@
-﻿using Microsoft.Graph;
+﻿using IntuneComplianceMonitor.ViewModels;
+using Microsoft.Graph;
 using Microsoft.Graph.Models;
-using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Identity.Client;
-
-using System.Windows;
-using IntuneComplianceMonitor.ViewModels;
-using IntuneComplianceMonitor.Services;
-using System.Windows;
-using Microsoft.Kiota.Abstractions;
 using Microsoft.Identity.Client.Desktop;
+using Microsoft.Kiota.Abstractions;
+using Microsoft.Kiota.Abstractions.Authentication;
 using System.Collections.Concurrent;
+using System.Windows;
 using Application = System.Windows.Application;
 
 namespace IntuneComplianceMonitor.Services
 {
     public class IntuneService
     {
-
         #region Fields
 
         private const int CACHE_DURATION_MINUTES = 60;
+
         private static ConcurrentDictionary<string, (object Result, DateTime Timestamp)> _methodResultCache
      = new ConcurrentDictionary<string, (object, DateTime)>();
 
@@ -54,7 +51,6 @@ namespace IntuneComplianceMonitor.Services
             // Get credentials from settings
             _clientId = _settingsService.CurrentSettings.IntuneClientId;
             _tenantId = _settingsService.CurrentSettings.IntuneTenantId;
-            
 
             // Validate settings
             if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_tenantId))
@@ -231,372 +227,6 @@ namespace IntuneComplianceMonitor.Services
             StatusMessage?.Invoke($"Completed location enrichment for {devices.Count} devices");
         }
 
-        // Helper method to infer location from device info before making Graph API calls
-        private void InferLocationFromDeviceInfo(DeviceViewModel device)
-        {
-            string name = device.DeviceName?.ToLowerInvariant() ?? "";
-            string owner = device.Owner?.ToLowerInvariant() ?? "";
-
-            // Check for country codes in device name
-            if (name.Contains("-uk") || name.Contains("_uk") || name.EndsWith("-uk") || name.EndsWith("_uk"))
-            {
-                device.Country = "United Kingdom";
-                return;
-            }
-
-            if (name.Contains("-us") || name.Contains("_us") || name.EndsWith("-us") || name.EndsWith("_us"))
-            {
-                device.Country = "United States";
-                return;
-            }
-
-            if (name.Contains("-au") || name.Contains("_au") || name.EndsWith("-au") || name.EndsWith("_au"))
-            {
-                device.Country = "Australia";
-                return;
-            }
-
-            if (name.Contains("-ca") || name.Contains("_ca") || name.EndsWith("-ca") || name.EndsWith("_ca"))
-            {
-                device.Country = "Canada";
-                return;
-            }
-
-            if (name.Contains("-de") || name.Contains("_de") || name.EndsWith("-de") || name.EndsWith("_de"))
-            {
-                device.Country = "Germany";
-                return;
-            }
-
-            if (name.Contains("-fr") || name.Contains("_fr") || name.EndsWith("-fr") || name.EndsWith("_fr"))
-            {
-                device.Country = "France";
-                return;
-            }
-
-            // Look for country names in the device name or owner name
-            var countries = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "london", "United Kingdom" },
-        { "uk", "United Kingdom" },
-        { "britain", "United Kingdom" },
-        { "england", "United Kingdom" },
-        { "scotland", "United Kingdom" },
-        { "wales", "United Kingdom" },
-        { "usa", "United States" },
-        { "america", "United States" },
-        { "us", "United States" },
-        { "australia", "Australia" },
-        { "aus", "Australia" },
-        { "canada", "Canada" },
-        { "can", "Canada" },
-        { "germany", "Germany" },
-        { "ger", "Germany" },
-        { "france", "France" },
-        { "fra", "France" },
-        { "india", "India" },
-        { "ind", "India" },
-        { "japan", "Japan" },
-        { "jpn", "Japan" },
-        { "singapore", "Singapore" },
-        { "sgp", "Singapore" },
-        { "ireland", "Ireland" },
-        { "irl", "Ireland" },
-        { "spain", "Spain" },
-        { "esp", "Spain" },
-        { "china", "China" },
-        { "chn", "China" },
-        { "brazil", "Brazil" },
-        { "bra", "Brazil" },
-        { "mexico", "Mexico" },
-        { "mex", "Mexico" },
-        { "netherlands", "Netherlands" },
-        { "nld", "Netherlands" },
-        { "holland", "Netherlands" },
-        { "italy", "Italy" },
-        { "ita", "Italy" },
-        { "romania", "Romania" },
-        { "rom", "Romania" },
-        { "israel", "Israel" },
-        { "isr", "Israel" },
-        { "new zealand", "New Zealand" },
-        { "nzl", "New Zealand" },
-        { "nz", "New Zealand" },
-    };
-
-            // Check device name against country list
-            foreach (var country in countries)
-            {
-                if (name.Contains(country.Key) || owner.Contains(country.Key))
-                {
-                    device.Country = country.Value;
-                    return;
-                }
-            }
-
-            // Check for city names that can identify a country
-            var cities = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "london", "United Kingdom" },
-        { "manchester", "United Kingdom" },
-        { "birmingham", "United Kingdom" },
-        { "liverpool", "United Kingdom" },
-        { "edinburgh", "United Kingdom" },
-        { "glasgow", "United Kingdom" },
-        { "new york", "United States" },
-        { "los angeles", "United States" },
-        { "chicago", "United States" },
-        { "houston", "United States" },
-        { "phoenix", "United States" },
-        { "philadelphia", "United States" },
-        { "san antonio", "United States" },
-        { "san diego", "United States" },
-        { "dallas", "United States" },
-        { "san jose", "United States" },
-        { "sydney", "Australia" },
-        { "melbourne", "Australia" },
-        { "brisbane", "Australia" },
-        { "toronto", "Canada" },
-        { "montreal", "Canada" },
-        { "vancouver", "Canada" },
-        { "berlin", "Germany" },
-        { "munich", "Germany" },
-        { "hamburg", "Germany" },
-        { "paris", "France" },
-        { "marseille", "France" },
-        { "lyon", "France" },
-        { "singapore", "Singapore" },
-        { "dublin", "Ireland" },
-        { "cork", "Ireland" },
-        { "galway", "Ireland" },
-        { "madrid", "Spain" },
-        { "barcelona", "Spain" },
-        { "mumbai", "India" },
-        { "delhi", "India" },
-        { "bangalore", "India" },
-        { "tokyo", "Japan" },
-        { "osaka", "Japan" },
-        { "amsterdam", "Netherlands" },
-        { "rotterdam", "Netherlands" },
-        { "rome", "Italy" },
-        { "milan", "Italy" },
-        { "bucharest", "Romania" },
-        { "cluj", "Romania" },
-        { "timisoara", "Romania" },
-        { "tel aviv", "Israel" },
-        { "jerusalem", "Israel" },
-        { "auckland", "New Zealand" },
-        { "wellington", "New Zealand" },
-        { "christchurch", "New Zealand" }
-    };
-
-            // Check device name and owner against city list
-            foreach (var city in cities)
-            {
-                if (name.Contains(city.Key) || owner.Contains(city.Key))
-                {
-                    device.Country = city.Value;
-                    device.City = city.Key;
-                    return;
-                }
-            }
-        }
-
-        // Extract country from office location field
-        private string ExtractCountryFromOfficeLocation(string officeLocation)
-        {
-            if (string.IsNullOrWhiteSpace(officeLocation))
-                return null;
-
-            // Common country names that might appear in office location
-            var countries = new[] {
-        "United Kingdom", "UK", "England", "Scotland", "Wales",
-        "United States", "USA", "US", "America",
-        "Australia", "Canada", "Germany", "France", "India",
-        "Japan", "Singapore", "Ireland", "Spain", "China",
-        "Brazil", "Mexico", "Netherlands", "Italy", "Romania",
-        "Israel", "New Zealand"
-    };
-
-            // Check if any country name appears in the office location
-            foreach (var country in countries)
-            {
-                if (officeLocation.Contains(country, StringComparison.OrdinalIgnoreCase))
-                    return country;
-            }
-
-            return null;
-        }
-
-        // Try to infer country from city
-        private string InferCountryFromCity(string city)
-        {
-            if (string.IsNullOrWhiteSpace(city))
-                return null;
-
-            var cityToCountry = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "London", "United Kingdom" },
-        { "Manchester", "United Kingdom" },
-        { "Birmingham", "United Kingdom" },
-        { "Liverpool", "United Kingdom" },
-        { "Edinburgh", "United Kingdom" },
-        { "Glasgow", "United Kingdom" },
-        { "New York", "United States" },
-        { "Los Angeles", "United States" },
-        { "Chicago", "United States" },
-        { "Houston", "United States" },
-        { "Phoenix", "United States" },
-        { "Philadelphia", "United States" },
-        { "San Antonio", "United States" },
-        { "San Diego", "United States" },
-        { "Dallas", "United States" },
-        { "San Jose", "United States" },
-        { "Sydney", "Australia" },
-        { "Melbourne", "Australia" },
-        { "Brisbane", "Australia" },
-        { "Toronto", "Canada" },
-        { "Montreal", "Canada" },
-        { "Vancouver", "Canada" },
-        { "Berlin", "Germany" },
-        { "Munich", "Germany" },
-        { "Hamburg", "Germany" },
-        { "Paris", "France" },
-        { "Marseille", "France" },
-        { "Lyon", "France" },
-        { "Singapore", "Singapore" },
-        { "Dublin", "Ireland" },
-        { "Cork", "Ireland" },
-        { "Galway", "Ireland" },
-        { "Madrid", "Spain" },
-        { "Barcelona", "Spain" },
-        { "Mumbai", "India" },
-        { "Delhi", "India" },
-        { "Bangalore", "India" },
-        { "Tokyo", "Japan" },
-        { "Osaka", "Japan" },
-        { "Amsterdam", "Netherlands" },
-        { "Rotterdam", "Netherlands" },
-        { "Rome", "Italy" },
-        { "Milan", "Italy" },
-        { "Bucharest", "Romania" },
-        { "Cluj", "Romania" },
-        { "Timisoara", "Romania" },
-        { "Tel Aviv", "Israel" },
-        { "Jerusalem", "Israel" },
-        { "Auckland", "New Zealand" },
-        { "Wellington", "New Zealand" },
-        { "Christchurch", "New Zealand" }
-    };
-
-            if (cityToCountry.TryGetValue(city, out var country))
-                return country;
-
-            return null;
-        }
-
-        // Try to infer country from state/province
-        private string InferCountryFromState(string state)
-        {
-            if (string.IsNullOrWhiteSpace(state))
-                return null;
-
-            // US States
-            var usStates = new[] {
-        "Alabama", "Alaska", "Arizona", "Arkansas", "California",
-        "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
-        "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
-        "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
-        "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
-        "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
-        "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
-        "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
-        "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
-        "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
-        "DC", "D.C.", "District of Columbia"
-    };
-
-            // Canadian Provinces
-            var canadaProvinces = new[] {
-        "Alberta", "British Columbia", "Manitoba", "New Brunswick",
-        "Newfoundland and Labrador", "Northwest Territories", "Nova Scotia",
-        "Nunavut", "Ontario", "Prince Edward Island", "Quebec",
-        "Saskatchewan", "Yukon"
-    };
-
-            // Australian States
-            var australiaStates = new[] {
-        "New South Wales", "Queensland", "South Australia",
-        "Tasmania", "Victoria", "Western Australia",
-        "Australian Capital Territory", "Northern Territory"
-    };
-
-            // UK Countries/Regions
-            var ukRegions = new[] {
-        "England", "Scotland", "Wales", "Northern Ireland"
-    };
-
-            foreach (var usState in usStates)
-            {
-                if (state.Equals(usState, StringComparison.OrdinalIgnoreCase))
-                    return "United States";
-            }
-
-            foreach (var province in canadaProvinces)
-            {
-                if (state.Equals(province, StringComparison.OrdinalIgnoreCase))
-                    return "Canada";
-            }
-
-            foreach (var ausState in australiaStates)
-            {
-                if (state.Equals(ausState, StringComparison.OrdinalIgnoreCase))
-                    return "Australia";
-            }
-
-            foreach (var region in ukRegions)
-            {
-                if (state.Equals(region, StringComparison.OrdinalIgnoreCase))
-                    return "United Kingdom";
-            }
-
-            return null;
-        }
-
-        // Try to infer country from device name
-        private string InferCountryFromDeviceName(string deviceName)
-        {
-            if (string.IsNullOrWhiteSpace(deviceName))
-                return null;
-
-            // Check for common prefixes/suffixes that indicate location
-            if (deviceName.Contains("AKL", StringComparison.OrdinalIgnoreCase) ||
-                deviceName.Contains("Rangitoto", StringComparison.OrdinalIgnoreCase))
-                return "New Zealand";
-
-            if (deviceName.Contains("UK-", StringComparison.OrdinalIgnoreCase) ||
-                deviceName.Contains("UKS", StringComparison.OrdinalIgnoreCase))
-                return "United Kingdom";
-
-            if (deviceName.Contains("US-", StringComparison.OrdinalIgnoreCase) ||
-                deviceName.Contains("USA-", StringComparison.OrdinalIgnoreCase))
-                return "United States";
-
-            if (deviceName.Contains("SG-", StringComparison.OrdinalIgnoreCase) ||
-                deviceName.Contains("SGP-", StringComparison.OrdinalIgnoreCase))
-                return "Singapore";
-
-            if (deviceName.Contains("AU-", StringComparison.OrdinalIgnoreCase) ||
-                deviceName.Contains("AUS-", StringComparison.OrdinalIgnoreCase))
-                return "Australia";
-
-            // Check for language indicators
-            if (deviceName.Contains("de Vincent", StringComparison.OrdinalIgnoreCase) ||
-                deviceName.Contains("de Noor", StringComparison.OrdinalIgnoreCase))
-                return "France";
-
-            return null;
-        }
         public async Task<string> EnsureUserPrincipalNameAsync()
         {
             // First try to get it from MSAL
@@ -624,6 +254,7 @@ namespace IntuneComplianceMonitor.Services
 
             return "Unknown";
         }
+
         public async Task<List<ConfigurationProfileViewModel>> GetAppliedConfigurationProfilesAsync(string deviceId, CancellationToken cancellationToken = default)
         {
             var result = new List<ConfigurationProfileViewModel>();
@@ -766,15 +397,12 @@ namespace IntuneComplianceMonitor.Services
 
                         if (stateString == "notcompliant")
                             complianceIssues.Add($"{policyName}: Non-compliant");
-
                         else if (stateString == "notapplicable")
                             complianceIssues.Add($"{policyName}: Not applicable");
-
                         else if (stateString == "compliant")
                             complianceIssues.Add($"{policyName}: Compliant");
                     }
                 }
-
 
                 System.Diagnostics.Debug.WriteLine($"Completed GetComplianceIssuesAsync: {DateTime.Now}");
             }
@@ -874,7 +502,6 @@ namespace IntuneComplianceMonitor.Services
                             ErrorDetails = errorDetails
                         });
                     }
-
                 }
             }
             catch (Exception ex)
@@ -962,6 +589,7 @@ namespace IntuneComplianceMonitor.Services
 
             return counts;
         }
+
         public async Task<Dictionary<string, List<DeviceViewModel>>> GetDevicesGroupedByPolicyAsync(List<DeviceViewModel> devices)
         {
             var result = new Dictionary<string, List<DeviceViewModel>>(StringComparer.OrdinalIgnoreCase);
@@ -1180,6 +808,32 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
+        // Extract country from office location field
+        private string ExtractCountryFromOfficeLocation(string officeLocation)
+        {
+            if (string.IsNullOrWhiteSpace(officeLocation))
+                return null;
+
+            // Common country names that might appear in office location
+            var countries = new[] {
+        "United Kingdom", "UK", "England", "Scotland", "Wales",
+        "United States", "USA", "US", "America",
+        "Australia", "Canada", "Germany", "France", "India",
+        "Japan", "Singapore", "Ireland", "Spain", "China",
+        "Brazil", "Mexico", "Netherlands", "Italy", "Romania",
+        "Israel", "New Zealand"
+    };
+
+            // Check if any country name appears in the office location
+            foreach (var country in countries)
+            {
+                if (officeLocation.Contains(country, StringComparison.OrdinalIgnoreCase))
+                    return country;
+            }
+
+            return null;
+        }
+
         private async Task GetNonCompliantSettingsAsync(string deviceId, string policyId, List<string> errorDetails, CancellationToken cancellationToken)
         {
             try
@@ -1228,6 +882,347 @@ namespace IntuneComplianceMonitor.Services
             }
         }
 
+        // Try to infer country from city
+        private string InferCountryFromCity(string city)
+        {
+            if (string.IsNullOrWhiteSpace(city))
+                return null;
+
+            var cityToCountry = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "London", "United Kingdom" },
+        { "Manchester", "United Kingdom" },
+        { "Birmingham", "United Kingdom" },
+        { "Liverpool", "United Kingdom" },
+        { "Edinburgh", "United Kingdom" },
+        { "Glasgow", "United Kingdom" },
+        { "New York", "United States" },
+        { "Los Angeles", "United States" },
+        { "Chicago", "United States" },
+        { "Houston", "United States" },
+        { "Phoenix", "United States" },
+        { "Philadelphia", "United States" },
+        { "San Antonio", "United States" },
+        { "San Diego", "United States" },
+        { "Dallas", "United States" },
+        { "San Jose", "United States" },
+        { "Sydney", "Australia" },
+        { "Melbourne", "Australia" },
+        { "Brisbane", "Australia" },
+        { "Toronto", "Canada" },
+        { "Montreal", "Canada" },
+        { "Vancouver", "Canada" },
+        { "Berlin", "Germany" },
+        { "Munich", "Germany" },
+        { "Hamburg", "Germany" },
+        { "Paris", "France" },
+        { "Marseille", "France" },
+        { "Lyon", "France" },
+        { "Singapore", "Singapore" },
+        { "Dublin", "Ireland" },
+        { "Cork", "Ireland" },
+        { "Galway", "Ireland" },
+        { "Madrid", "Spain" },
+        { "Barcelona", "Spain" },
+        { "Mumbai", "India" },
+        { "Delhi", "India" },
+        { "Bangalore", "India" },
+        { "Tokyo", "Japan" },
+        { "Osaka", "Japan" },
+        { "Amsterdam", "Netherlands" },
+        { "Rotterdam", "Netherlands" },
+        { "Rome", "Italy" },
+        { "Milan", "Italy" },
+        { "Bucharest", "Romania" },
+        { "Cluj", "Romania" },
+        { "Timisoara", "Romania" },
+        { "Tel Aviv", "Israel" },
+        { "Jerusalem", "Israel" },
+        { "Auckland", "New Zealand" },
+        { "Wellington", "New Zealand" },
+        { "Christchurch", "New Zealand" }
+    };
+
+            if (cityToCountry.TryGetValue(city, out var country))
+                return country;
+
+            return null;
+        }
+
+        // Try to infer country from device name
+        private string InferCountryFromDeviceName(string deviceName)
+        {
+            if (string.IsNullOrWhiteSpace(deviceName))
+                return null;
+
+            // Check for common prefixes/suffixes that indicate location
+            if (deviceName.Contains("AKL", StringComparison.OrdinalIgnoreCase) ||
+                deviceName.Contains("Rangitoto", StringComparison.OrdinalIgnoreCase))
+                return "New Zealand";
+
+            if (deviceName.Contains("UK-", StringComparison.OrdinalIgnoreCase) ||
+                deviceName.Contains("UKS", StringComparison.OrdinalIgnoreCase))
+                return "United Kingdom";
+
+            if (deviceName.Contains("US-", StringComparison.OrdinalIgnoreCase) ||
+                deviceName.Contains("USA-", StringComparison.OrdinalIgnoreCase))
+                return "United States";
+
+            if (deviceName.Contains("SG-", StringComparison.OrdinalIgnoreCase) ||
+                deviceName.Contains("SGP-", StringComparison.OrdinalIgnoreCase))
+                return "Singapore";
+
+            if (deviceName.Contains("AU-", StringComparison.OrdinalIgnoreCase) ||
+                deviceName.Contains("AUS-", StringComparison.OrdinalIgnoreCase))
+                return "Australia";
+
+            // Check for language indicators
+            if (deviceName.Contains("de Vincent", StringComparison.OrdinalIgnoreCase) ||
+                deviceName.Contains("de Noor", StringComparison.OrdinalIgnoreCase))
+                return "France";
+
+            return null;
+        }
+
+        // Try to infer country from state/province
+        private string InferCountryFromState(string state)
+        {
+            if (string.IsNullOrWhiteSpace(state))
+                return null;
+
+            // US States
+            var usStates = new[] {
+        "Alabama", "Alaska", "Arizona", "Arkansas", "California",
+        "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
+        "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+        "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+        "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
+        "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+        "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
+        "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+        "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+        "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
+        "DC", "D.C.", "District of Columbia"
+    };
+
+            // Canadian Provinces
+            var canadaProvinces = new[] {
+        "Alberta", "British Columbia", "Manitoba", "New Brunswick",
+        "Newfoundland and Labrador", "Northwest Territories", "Nova Scotia",
+        "Nunavut", "Ontario", "Prince Edward Island", "Quebec",
+        "Saskatchewan", "Yukon"
+    };
+
+            // Australian States
+            var australiaStates = new[] {
+        "New South Wales", "Queensland", "South Australia",
+        "Tasmania", "Victoria", "Western Australia",
+        "Australian Capital Territory", "Northern Territory"
+    };
+
+            // UK Countries/Regions
+            var ukRegions = new[] {
+        "England", "Scotland", "Wales", "Northern Ireland"
+    };
+
+            foreach (var usState in usStates)
+            {
+                if (state.Equals(usState, StringComparison.OrdinalIgnoreCase))
+                    return "United States";
+            }
+
+            foreach (var province in canadaProvinces)
+            {
+                if (state.Equals(province, StringComparison.OrdinalIgnoreCase))
+                    return "Canada";
+            }
+
+            foreach (var ausState in australiaStates)
+            {
+                if (state.Equals(ausState, StringComparison.OrdinalIgnoreCase))
+                    return "Australia";
+            }
+
+            foreach (var region in ukRegions)
+            {
+                if (state.Equals(region, StringComparison.OrdinalIgnoreCase))
+                    return "United Kingdom";
+            }
+
+            return null;
+        }
+
+        // Helper method to infer location from device info before making Graph API calls
+        private void InferLocationFromDeviceInfo(DeviceViewModel device)
+        {
+            string name = device.DeviceName?.ToLowerInvariant() ?? "";
+            string owner = device.Owner?.ToLowerInvariant() ?? "";
+
+            // Check for country codes in device name
+            if (name.Contains("-uk") || name.Contains("_uk") || name.EndsWith("-uk") || name.EndsWith("_uk"))
+            {
+                device.Country = "United Kingdom";
+                return;
+            }
+
+            if (name.Contains("-us") || name.Contains("_us") || name.EndsWith("-us") || name.EndsWith("_us"))
+            {
+                device.Country = "United States";
+                return;
+            }
+
+            if (name.Contains("-au") || name.Contains("_au") || name.EndsWith("-au") || name.EndsWith("_au"))
+            {
+                device.Country = "Australia";
+                return;
+            }
+
+            if (name.Contains("-ca") || name.Contains("_ca") || name.EndsWith("-ca") || name.EndsWith("_ca"))
+            {
+                device.Country = "Canada";
+                return;
+            }
+
+            if (name.Contains("-de") || name.Contains("_de") || name.EndsWith("-de") || name.EndsWith("_de"))
+            {
+                device.Country = "Germany";
+                return;
+            }
+
+            if (name.Contains("-fr") || name.Contains("_fr") || name.EndsWith("-fr") || name.EndsWith("_fr"))
+            {
+                device.Country = "France";
+                return;
+            }
+
+            // Look for country names in the device name or owner name
+            var countries = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "london", "United Kingdom" },
+        { "uk", "United Kingdom" },
+        { "britain", "United Kingdom" },
+        { "england", "United Kingdom" },
+        { "scotland", "United Kingdom" },
+        { "wales", "United Kingdom" },
+        { "usa", "United States" },
+        { "america", "United States" },
+        { "us", "United States" },
+        { "australia", "Australia" },
+        { "aus", "Australia" },
+        { "canada", "Canada" },
+        { "can", "Canada" },
+        { "germany", "Germany" },
+        { "ger", "Germany" },
+        { "france", "France" },
+        { "fra", "France" },
+        { "india", "India" },
+        { "ind", "India" },
+        { "japan", "Japan" },
+        { "jpn", "Japan" },
+        { "singapore", "Singapore" },
+        { "sgp", "Singapore" },
+        { "ireland", "Ireland" },
+        { "irl", "Ireland" },
+        { "spain", "Spain" },
+        { "esp", "Spain" },
+        { "china", "China" },
+        { "chn", "China" },
+        { "brazil", "Brazil" },
+        { "bra", "Brazil" },
+        { "mexico", "Mexico" },
+        { "mex", "Mexico" },
+        { "netherlands", "Netherlands" },
+        { "nld", "Netherlands" },
+        { "holland", "Netherlands" },
+        { "italy", "Italy" },
+        { "ita", "Italy" },
+        { "romania", "Romania" },
+        { "rom", "Romania" },
+        { "israel", "Israel" },
+        { "isr", "Israel" },
+        { "new zealand", "New Zealand" },
+        { "nzl", "New Zealand" },
+        { "nz", "New Zealand" },
+    };
+
+            // Check device name against country list
+            foreach (var country in countries)
+            {
+                if (name.Contains(country.Key) || owner.Contains(country.Key))
+                {
+                    device.Country = country.Value;
+                    return;
+                }
+            }
+
+            // Check for city names that can identify a country
+            var cities = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "london", "United Kingdom" },
+        { "manchester", "United Kingdom" },
+        { "birmingham", "United Kingdom" },
+        { "liverpool", "United Kingdom" },
+        { "edinburgh", "United Kingdom" },
+        { "glasgow", "United Kingdom" },
+        { "new york", "United States" },
+        { "los angeles", "United States" },
+        { "chicago", "United States" },
+        { "houston", "United States" },
+        { "phoenix", "United States" },
+        { "philadelphia", "United States" },
+        { "san antonio", "United States" },
+        { "san diego", "United States" },
+        { "dallas", "United States" },
+        { "san jose", "United States" },
+        { "sydney", "Australia" },
+        { "melbourne", "Australia" },
+        { "brisbane", "Australia" },
+        { "toronto", "Canada" },
+        { "montreal", "Canada" },
+        { "vancouver", "Canada" },
+        { "berlin", "Germany" },
+        { "munich", "Germany" },
+        { "hamburg", "Germany" },
+        { "paris", "France" },
+        { "marseille", "France" },
+        { "lyon", "France" },
+        { "singapore", "Singapore" },
+        { "dublin", "Ireland" },
+        { "cork", "Ireland" },
+        { "galway", "Ireland" },
+        { "madrid", "Spain" },
+        { "barcelona", "Spain" },
+        { "mumbai", "India" },
+        { "delhi", "India" },
+        { "bangalore", "India" },
+        { "tokyo", "Japan" },
+        { "osaka", "Japan" },
+        { "amsterdam", "Netherlands" },
+        { "rotterdam", "Netherlands" },
+        { "rome", "Italy" },
+        { "milan", "Italy" },
+        { "bucharest", "Romania" },
+        { "cluj", "Romania" },
+        { "timisoara", "Romania" },
+        { "tel aviv", "Israel" },
+        { "jerusalem", "Israel" },
+        { "auckland", "New Zealand" },
+        { "wellington", "New Zealand" },
+        { "christchurch", "New Zealand" }
+    };
+
+            // Check device name and owner against city list
+            foreach (var city in cities)
+            {
+                if (name.Contains(city.Key) || owner.Contains(city.Key))
+                {
+                    device.Country = city.Value;
+                    device.City = city.Key;
+                    return;
+                }
+            }
+        }
+
         private string MapComplianceState(string rawState)
         {
             // Normalize state strings and handle edge cases
@@ -1235,14 +1230,19 @@ namespace IntuneComplianceMonitor.Services
             {
                 case "compliant":
                     return "Compliant";
+
                 case "noncompliant":
                     return "Non-Compliant";
+
                 case "notapplicable":
                     return "Not Applicable";
+
                 case "unknown":
                     return "Unknown";
+
                 case "error":
                     return "Error";
+
                 default:
                     System.Diagnostics.Debug.WriteLine($"Unexpected compliance state: {rawState}");
                     return rawState;
@@ -1287,12 +1287,12 @@ namespace IntuneComplianceMonitor.Services
         { "DefaultDeviceCompliancePolicy.RequireUserExistence", "No enrolled user associated with the device" },
         { "DefaultDeviceCompliancePolicy.RequireDeviceCompliancePolicyAssigned", "No compliance policy assigned to the device" },
         { "DefaultDeviceCompliancePolicy.RequireRemainContact", "Device is no longer in contact with management system" },
-        
+
         // Fallback translations
         { "RequireUserExistence", "No enrolled user associated with the device" },
         { "RequireDeviceCompliancePolicyAssigned", "No compliance policy assigned to the device" },
         { "RequireRemainContact", "Device is no longer in contact with management system" },
-        
+
         // Generic fallback
         { "NonCompliant", "Device does not meet compliance requirements" }
     };

@@ -1,16 +1,20 @@
-﻿using System;
+﻿using IntuneComplianceMonitor.Models;
 using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
-using System.Windows.Controls;
 using System.Windows;
-using IntuneComplianceMonitor.Models;
+using System.Windows.Controls;
 
 public class SettingsService
 {
+    #region Fields
+
     private const string SettingsFileName = "settings.json";
     private readonly string _settingsFilePath;
     private ApplicationSettings _currentSettings;
+
+    #endregion Fields
+
+    #region Constructors
 
     public SettingsService()
     {
@@ -42,7 +46,34 @@ public class SettingsService
         }
     }
 
+    #endregion Constructors
+
+    #region Properties
+
     public ApplicationSettings CurrentSettings => _currentSettings;
+
+    #endregion Properties
+
+    #region Methods
+
+    public async Task SaveSettings(ApplicationSettings settings)
+    {
+        try
+        {
+            _currentSettings = settings;
+            string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+            await File.WriteAllTextAsync(_settingsFilePath, json);
+            System.Diagnostics.Debug.WriteLine("Settings saved successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
+            throw;
+        }
+    }
 
     private void LoadSettingsSync()
     {
@@ -79,16 +110,6 @@ public class SettingsService
             System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             throw;
-        }
-    }
-
-    private void ValidateRequiredSettings()
-    {
-        if (string.IsNullOrEmpty(_currentSettings.IntuneClientId) ||
-            string.IsNullOrEmpty(_currentSettings.IntuneTenantId))
-        {
-            PromptForRequiredSettings();
-            SaveSettingsSync(_currentSettings);
         }
     }
 
@@ -206,6 +227,7 @@ public class SettingsService
             Application.Current.Shutdown();
         }
     }
+
     private void SaveSettingsSync(ApplicationSettings settings)
     {
         try
@@ -224,22 +246,15 @@ public class SettingsService
         }
     }
 
-    public async Task SaveSettings(ApplicationSettings settings)
+    private void ValidateRequiredSettings()
     {
-        try
+        if (string.IsNullOrEmpty(_currentSettings.IntuneClientId) ||
+            string.IsNullOrEmpty(_currentSettings.IntuneTenantId))
         {
-            _currentSettings = settings;
-            string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-            await File.WriteAllTextAsync(_settingsFilePath, json);
-            System.Diagnostics.Debug.WriteLine("Settings saved successfully");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
-            throw;
+            PromptForRequiredSettings();
+            SaveSettingsSync(_currentSettings);
         }
     }
+
+    #endregion Methods
 }

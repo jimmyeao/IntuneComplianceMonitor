@@ -1,22 +1,29 @@
-﻿using System.Windows.Controls;
+﻿using IntuneComplianceMonitor.ViewModels;
 using System.Windows;
-using Microsoft.Graph.Models;
-using IntuneComplianceMonitor.ViewModels;
+using System.Windows.Controls;
 using Application = System.Windows.Application;
-using System;
-using System.Threading.Tasks;
 
 namespace IntuneComplianceMonitor.Views
 {
     public partial class CompliancePolicyPage : Page
     {
+        #region Fields
+
         private CompliancePolicyViewModel _viewModel;
+
+        #endregion Fields
+
+        #region Constructors
 
         public CompliancePolicyPage()
         {
             InitializeComponent();
             Loaded += CompliancePolicyPage_Loaded;
         }
+
+        #endregion Constructors
+
+        #region Methods
 
         private async void CompliancePolicyPage_Loaded(object sender, RoutedEventArgs e)
         {
@@ -66,5 +73,7 @@ namespace IntuneComplianceMonitor.Views
                 viewModel.IsLoading = false;
             }
         }
+
+        #endregion Methods
     }
 }

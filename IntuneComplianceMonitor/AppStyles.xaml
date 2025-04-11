@@ -3,25 +3,25 @@
 
     <!-- Modern button style -->
     <Style x:Key="ModernButton" TargetType="Button">
-        <Setter Property="Background" Value="#0078D7"/>
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="Padding" Value="15,8"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Background" Value="#0078D7" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Padding" Value="15,8" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}" 
-                            CornerRadius="4" 
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="4"
                             Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#005A9E"/>
+                            <Setter Property="Background" Value="#005A9E" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#003C6A"/>
+                            <Setter Property="Background" Value="#003C6A" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -31,27 +31,27 @@
 
     <!-- Modern navigation button style -->
     <Style x:Key="NavButton" TargetType="Button">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Padding" Value="20,12"/>
-        <Setter Property="Margin" Value="5,2"/>
-        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="20,12" />
+        <Setter Property="Margin" Value="5,2" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" Background="{TemplateBinding Background}" 
-                            CornerRadius="4" 
+                    <Border x:Name="border" Background="{TemplateBinding Background}"
+                            CornerRadius="4"
                             Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#1A86D9" TargetName="border"/>
+                            <Setter Property="Background" Value="#1A86D9" TargetName="border" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#1A70B1" TargetName="border"/>
+                            <Setter Property="Background" Value="#1A70B1" TargetName="border" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -61,34 +61,33 @@
 
     <!-- Card style for panels -->
     <Style x:Key="CardPanel" TargetType="Border">
-        <Setter Property="Background" Value="White"/>
-        <Setter Property="BorderBrush" Value="#DDDDDD"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Padding" Value="15"/>
-        <Setter Property="Margin" Value="10"/>
+        <Setter Property="Background" Value="White" />
+        <Setter Property="BorderBrush" Value="#DDDDDD" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="15" />
+        <Setter Property="Margin" Value="10" />
         <Setter Property="Effect">
             <Setter.Value>
-                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.2"/>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.2" />
             </Setter.Value>
         </Setter>
     </Style>
 
     <!-- Style for section titles -->
     <Style x:Key="SectionTitle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="16"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Margin" Value="0,0,0,10"/>
-        <Setter Property="Foreground" Value="#333333"/>
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+        <Setter Property="Foreground" Value="#333333" />
     </Style>
 
     <!-- Style for stat numbers -->
     <Style x:Key="StatNumber" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="38"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="HorizontalAlignment" Value="Center"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="Margin" Value="0,10,0,10"/>
+        <Setter Property="FontSize" Value="38" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,10,0,10" />
     </Style>
-
 </ResourceDictionary>

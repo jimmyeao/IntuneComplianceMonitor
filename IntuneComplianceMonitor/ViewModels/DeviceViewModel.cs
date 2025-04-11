@@ -1,43 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace IntuneComplianceMonitor.ViewModels
 {
     public class DeviceViewModel : INotifyPropertyChanged
     {
+        #region Fields
+
+        private string _city;
+        private List<string> _complianceIssues;
+        private string _country;
         private string _deviceId;
         private string _deviceName;
-        private string _owner;
         private string _deviceType;
         private DateTime _lastCheckIn;
-        private string _ownership;
-        private string _osVersion;
-        private string _serialNumber;
         private string _manufacturer;
         private string _model;
-        private List<string> _complianceIssues;
-        public string UserId { get; set; } // Populate from ManagedDevice.UserId
-       
-      
-        private string _country;
-        private string _city;
         private string _officeLocation;
+        private string _osVersion;
+        private string _owner;
+        private string _ownership;
+        private string _serialNumber;
 
-        public string Country
+        #endregion Fields
+
+        #region Constructors
+
+        public DeviceViewModel()
         {
-            get => _country;
-            set
-            {
-                if (_country != value)
-                {
-                    _country = value;
-                    OnPropertyChanged();
-                }
-            }
+            ComplianceIssues = new List<string>();
         }
+
+        #endregion Constructors
+
+        #region Events
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        #endregion Events
+
+        #region Properties
 
         public string City
         {
@@ -52,22 +54,35 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public string OfficeLocation
+        public List<string> ComplianceIssues
         {
-            get => _officeLocation;
+            get => _complianceIssues;
             set
             {
-                if (_officeLocation != value)
+                if (_complianceIssues != value)
                 {
-                    _officeLocation = value;
+                    _complianceIssues = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsCompliant));
+                    OnPropertyChanged(nameof(ComplianceStatus));
+                    OnPropertyChanged(nameof(ComplianceIssuesList));
                 }
             }
         }
 
-        public DeviceViewModel()
+        public string ComplianceIssuesList => string.Join(", ", ComplianceIssues);
+        public string ComplianceStatus => IsCompliant ? "Compliant" : "Non-Compliant";
+        public string Country
         {
-            ComplianceIssues = new List<string>();
+            get => _country;
+            set
+            {
+                if (_country != value)
+                {
+                    _country = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
         public string DeviceId
@@ -96,19 +111,6 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public string Owner
-        {
-            get => _owner;
-            set
-            {
-                if (_owner != value)
-                {
-                    _owner = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
         public string DeviceType
         {
             get => _deviceType;
@@ -122,6 +124,7 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
+        public bool IsCompliant => !ComplianceIssues.Any();
         public DateTime LastCheckIn
         {
             get => _lastCheckIn;
@@ -138,45 +141,7 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public string Ownership
-        {
-            get => _ownership;
-            set
-            {
-                if (_ownership != value)
-                {
-                    _ownership = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        public string OSVersion
-        {
-            get => _osVersion;
-            set
-            {
-                if (_osVersion != value)
-                {
-                    _osVersion = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        public string SerialNumber
-        {
-            get => _serialNumber;
-            set
-            {
-                if (_serialNumber != value)
-                {
-                    _serialNumber = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
+        public string LastCheckInDisplay => LastCheckIn.ToString("g");
         public string Manufacturer
         {
             get => _manufacturer;
@@ -203,28 +168,72 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public List<string> ComplianceIssues
+        public string OfficeLocation
         {
-            get => _complianceIssues;
+            get => _officeLocation;
             set
             {
-                if (_complianceIssues != value)
+                if (_officeLocation != value)
                 {
-                    _complianceIssues = value;
+                    _officeLocation = value;
                     OnPropertyChanged();
-                    OnPropertyChanged(nameof(IsCompliant));
-                    OnPropertyChanged(nameof(ComplianceStatus));
-                    OnPropertyChanged(nameof(ComplianceIssuesList));
                 }
             }
         }
 
-        public string LastCheckInDisplay => LastCheckIn.ToString("g");
-        public bool IsCompliant => !ComplianceIssues.Any();
-        public string ComplianceStatus => IsCompliant ? "Compliant" : "Non-Compliant";
-        public string ComplianceIssuesList => string.Join(", ", ComplianceIssues);
-        public TimeSpan TimeSinceLastCheckIn => DateTime.Now - LastCheckIn;
+        public string OSVersion
+        {
+            get => _osVersion;
+            set
+            {
+                if (_osVersion != value)
+                {
+                    _osVersion = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
+        public string Owner
+        {
+            get => _owner;
+            set
+            {
+                if (_owner != value)
+                {
+                    _owner = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string Ownership
+        {
+            get => _ownership;
+            set
+            {
+                if (_ownership != value)
+                {
+                    _ownership = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string SerialNumber
+        {
+            get => _serialNumber;
+            set
+            {
+                if (_serialNumber != value)
+                {
+                    _serialNumber = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public TimeSpan TimeSinceLastCheckIn => DateTime.Now - LastCheckIn;
         public string TimeSinceLastCheckInDisplay
         {
             get
@@ -238,11 +247,18 @@ namespace IntuneComplianceMonitor.ViewModels
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public string UserId { get; set; }
 
+        #endregion Properties
+
+        #region Methods
+
+        // Populate from ManagedDevice.UserId
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        #endregion Methods
     }
 }

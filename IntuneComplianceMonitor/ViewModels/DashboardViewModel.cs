@@ -1,31 +1,18 @@
-﻿using IntuneComplianceMonitor.Services;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Input;
-using LiveChartsCore;
+﻿using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
-using LiveChartsCore.SkiaSharpView.Drawing.Geometries;
-using System.Windows.Media;
 using SkiaSharp;
-
-
-
-
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Input;
 
 namespace IntuneComplianceMonitor.ViewModels
 {
     public class DashboardViewModel : INotifyPropertyChanged
     {
         #region Fields
-
-
 
         private int _totalDevices;
         private int _nonCompliantDevices;
@@ -50,6 +37,7 @@ namespace IntuneComplianceMonitor.ViewModels
         private Dictionary<string, int> _cachedOwnershipCounts;
         private int? _cachedTotalDeviceCount;
         private string _title = "Intune Compliance Monitor";
+
         public string Title
         {
             get => _title;
@@ -62,6 +50,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 }
             }
         }
+
         #endregion Fields
 
         #region Constructors
@@ -103,11 +92,12 @@ namespace IntuneComplianceMonitor.ViewModels
         #endregion Events
 
         #region Properties
+
         public ISeries[] DeviceTypesSeries { get; set; }
         public ISeries[] OwnershipSeries { get; set; }
 
-
         public ICommand ApplyFiltersCommand { get; }
+
         public string StatusMessage
         {
             get => _statusMessage;
@@ -120,6 +110,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 }
             }
         }
+
         public Dictionary<string, int> ComplianceIssuesByType
         {
             get => _complianceIssuesByType;
@@ -340,6 +331,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 }
             }
         }
+
         public int TotalDevices
         {
             get => _totalDevices;
@@ -448,6 +440,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 IsLoading = false;
             }
         }
+
         public async Task LoadQuickStatsAsync()
         {
             try
@@ -482,11 +475,8 @@ namespace IntuneComplianceMonitor.ViewModels
                                 mainWindow.Title = this.Title;
                             }
                         });
-
-
                     }
                 }
-
             }
             catch (Exception ex)
             {
@@ -609,6 +599,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 System.Diagnostics.Debug.WriteLine(ex.StackTrace);
             }
         }
+
         private void UpdateCharts()
         {
             try
@@ -693,6 +684,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 System.Diagnostics.Debug.WriteLine(ex.StackTrace);
             }
         }
+
         private void CreateLiveCharts()
         {
             // Device types pie chart
@@ -753,12 +745,14 @@ namespace IntuneComplianceMonitor.ViewModels
             OwnershipSeries = ownershipSeries.ToArray();
             OnPropertyChanged(nameof(OwnershipSeries));
         }
+
         // Update ClearCache method to also clear disk cache
         public void ClearCache()
         {
             _allDevicesCache = null;
             ServiceManager.Instance.DataCacheService.ClearCache();
         }
+
         // In DashboardViewModel.cs, modify the ApplyDeviceData method
         private void ApplyDeviceData(List<DeviceViewModel> devices)
         {
@@ -840,7 +834,6 @@ namespace IntuneComplianceMonitor.ViewModels
             });
         }
 
-
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -900,6 +893,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 MessageBox.Show($"Error applying filters: {ex.Message}", "Filter Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         private void ExportData()
         {
             // In a real app, this would export the data to CSV or Excel

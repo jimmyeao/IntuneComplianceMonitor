@@ -5,152 +5,152 @@
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Filters Card -->
-        <Border Grid.Row="0" 
-                Background="#333337" 
-                BorderBrush="#444444" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                Padding="15" 
+        <Border Grid.Row="0"
+                Background="#333337"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="15"
                 Margin="5,5,5,15">
             <Border.Effect>
-                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3"/>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
             </Border.Effect>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" 
-                           Text="Device Filters" 
-                           FontSize="16" 
-                           FontWeight="SemiBold" 
-                           Margin="0,0,0,10" 
-                           Foreground="White"/>
+                <TextBlock Grid.Row="0"
+                           Text="Device Filters"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10"
+                           Foreground="White" />
 
                 <WrapPanel Grid.Row="1" Margin="0,10,0,0">
                     <!-- Search Box -->
                     <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="250">
-                        <TextBlock Text="Search" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White"/>
-                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                                 Padding="8,6" 
-                                 Background="#252529" 
-                                 Foreground="White" 
-                                 BorderBrush="#444444"/>
+                        <TextBlock Text="Search" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White" />
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="8,6"
+                                 Background="#252529"
+                                 Foreground="White"
+                                 BorderBrush="#444444" />
                     </StackPanel>
 
                     <!-- Device Type Filter -->
                     <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="180">
-                        <TextBlock Text="Device Type" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White"/>
-                        <ComboBox ItemsSource="{Binding DeviceTypes}" 
-                                  SelectedItem="{Binding SelectedDeviceType}" 
+                        <TextBlock Text="Device Type" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White" />
+                        <ComboBox ItemsSource="{Binding DeviceTypes}"
+                                  SelectedItem="{Binding SelectedDeviceType}"
                                   Style="{DynamicResource DarkComboBoxStyle}"
-                                  Padding="8,6" 
-                                  Background="#252529" 
-                                  Foreground="White" 
-                                  BorderBrush="#444444" Height="29"/>
+                                  Padding="8,6"
+                                  Background="#252529"
+                                  Foreground="White"
+                                  BorderBrush="#444444" Height="29" />
                     </StackPanel>
 
                     <!-- Ownership Filter -->
                     <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="180">
-                        <TextBlock Text="Ownership" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White"/>
-                        <ComboBox ItemsSource="{Binding OwnershipTypes}" 
-                                  SelectedItem="{Binding SelectedOwnership}" 
+                        <TextBlock Text="Ownership" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White" />
+                        <ComboBox ItemsSource="{Binding OwnershipTypes}"
+                                  SelectedItem="{Binding SelectedOwnership}"
                                   Style="{StaticResource DarkComboBoxStyle}"
-                                  Padding="8,6" 
-                                  Background="#252529" 
-                                  Foreground="White" 
-                                  BorderBrush="#444444" Height="29"/>
+                                  Padding="8,6"
+                                  Background="#252529"
+                                  Foreground="White"
+                                  BorderBrush="#444444" Height="29" />
                     </StackPanel>
 
                     <!-- Days Not Checked In Filter -->
                     <StackPanel Orientation="Vertical" Margin="0,0,20,10" Width="220">
-                        <TextBlock Text="Days Not Checked In" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White"/>
+                        <TextBlock Text="Days Not Checked In" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="White" />
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBox Grid.Column="0" 
-                                     Text="{Binding DaysNotCheckedIn, UpdateSourceTrigger=PropertyChanged}" 
-                                     Padding="8,6" 
-                                     Background="#252529" 
-                                     Foreground="White" 
-                                     BorderBrush="#444444"/>
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding DaysNotCheckedIn, UpdateSourceTrigger=PropertyChanged}"
+                                     Padding="8,6"
+                                     Background="#252529"
+                                     Foreground="White"
+                                     BorderBrush="#444444" />
 
-                            <CheckBox Grid.Column="1" 
-                                      Content="Filter" 
-                                      IsChecked="{Binding FilterByNotCheckedIn}" 
-                                      VerticalAlignment="Center" 
-                                      Margin="10,0,0,0" 
-                                      Foreground="White"/>
+                            <CheckBox Grid.Column="1"
+                                      Content="Filter"
+                                      IsChecked="{Binding FilterByNotCheckedIn}"
+                                      VerticalAlignment="Center"
+                                      Margin="10,0,0,0"
+                                      Foreground="White" />
                         </Grid>
                     </StackPanel>
 
                     <!-- Apply Filters Button -->
-                    <Button Content="Apply Filters" 
-                            Command="{Binding ApplyFiltersCommand}" 
-                            Background="#0078D7" 
-                            Foreground="White" 
-                            Padding="15,8" 
-                            Margin="0,20,0,0" 
-                            Width="120" 
-                            BorderThickness="0"/>
+                    <Button Content="Apply Filters"
+                            Command="{Binding ApplyFiltersCommand}"
+                            Background="#0078D7"
+                            Foreground="White"
+                            Padding="15,8"
+                            Margin="0,20,0,0"
+                            Width="120"
+                            BorderThickness="0" />
                 </WrapPanel>
             </Grid>
         </Border>
 
         <!-- Devices Table -->
-        <Border Grid.Row="1" 
-                Background="#333337" 
-                BorderBrush="#444444" 
-                BorderThickness="1" 
-                CornerRadius="8" 
-                Padding="15" 
+        <Border Grid.Row="1"
+                Background="#333337"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="15"
                 Margin="5,0,5,5">
             <Border.Effect>
-                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3"/>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="5" Opacity="0.3" />
             </Border.Effect>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0" 
-                               Text="Devices" 
-                               FontSize="16" 
-                               FontWeight="SemiBold" 
-                               Margin="0,0,0,10" 
-                               Foreground="White"/>
+                    <TextBlock Grid.Column="0"
+                               Text="Devices"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,10"
+                               Foreground="White" />
 
-                    <Button Grid.Column="1" 
-                            Content="Export" 
-                            Command="{Binding ExportCommand}" 
-                            Background="#0078D7" 
-                            Foreground="White" 
-                            Padding="15,8" 
-                            Width="100" 
-                            BorderThickness="0"/>
+                    <Button Grid.Column="1"
+                            Content="Export"
+                            Command="{Binding ExportCommand}"
+                            Background="#0078D7"
+                            Foreground="White"
+                            Padding="15,8"
+                            Width="100"
+                            BorderThickness="0" />
                 </Grid>
 
-                <DataGrid Grid.Row="1" 
+                <DataGrid Grid.Row="1"
         x:Name="DevicesGrid"
-        ItemsSource="{Binding Devices}" 
+        ItemsSource="{Binding Devices}"
         MouseDoubleClick="DevicesGrid_MouseDoubleClick"
-        AutoGenerateColumns="False" 
+        AutoGenerateColumns="False"
         IsReadOnly="True"
         GridLinesVisibility="Horizontal"
         BorderThickness="1"
@@ -163,29 +163,29 @@
         HorizontalGridLinesBrush="#444444">
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background" Value="#1E1E1E"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="Padding" Value="10,8"/>
-                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                            <Setter Property="BorderBrush" Value="#444444"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Background" Value="#1E1E1E" />
+                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Padding" Value="10,8" />
+                            <Setter Property="BorderThickness" Value="0,0,0,1" />
+                            <Setter Property="BorderBrush" Value="#444444" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
                         </Style>
                     </DataGrid.ColumnHeaderStyle>
                     <DataGrid.CellStyle>
                         <Style TargetType="DataGridCell">
-                            <Setter Property="Padding" Value="10,5"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="10,5" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Foreground" Value="White" />
                         </Style>
                     </DataGrid.CellStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200"/>
-                        <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="240"/>
-                        <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="140"/>
-                        <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="100"/>
-                        <DataGridTextColumn Header="Country" Binding="{Binding Country}" Width="120"/>
-                        <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="140"/>
-                        <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="*"/>
+                        <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200" />
+                        <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="240" />
+                        <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="140" />
+                        <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="100" />
+                        <DataGridTextColumn Header="Country" Binding="{Binding Country}" Width="120" />
+                        <DataGridTextColumn Header="OS Version" Binding="{Binding OSVersion}" Width="140" />
+                        <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="*" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

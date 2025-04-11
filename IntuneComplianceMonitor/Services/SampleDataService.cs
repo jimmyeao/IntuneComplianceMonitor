@@ -1,14 +1,13 @@
 ﻿using IntuneComplianceMonitor.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace IntuneComplianceMonitor.Services
 {
-    // This is a temporary service to provide sample data until 
+    // This is a temporary service to provide sample data until
     // Microsoft Graph integration is fully working
     public class SampleDataService
     {
+        #region Methods
+
         public Task<List<DeviceViewModel>> GetDevicesAsync()
         {
             var devices = new List<DeviceViewModel>
@@ -87,5 +86,7 @@ namespace IntuneComplianceMonitor.Services
 
             return Task.FromResult(devices);
         }
+
+        #endregion Methods
     }
 }

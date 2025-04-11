@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace IntuneComplianceMonitor.ViewModels
+﻿namespace IntuneComplianceMonitor.ViewModels
 {
     public class ComplianceOverviewViewModel
     {
-        public string PolicyName { get; set; }
+        #region Properties
+
         public int AffectedDeviceCount { get; set; }
+        public string PolicyName { get; set; }
+
+        #endregion Properties
     }
 }

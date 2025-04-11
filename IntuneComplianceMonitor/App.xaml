@@ -6,14 +6,11 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <!-- Include the Dark Theme dictionary -->
-                <ResourceDictionary Source="/IntuneComplianceMonitor;component/DarkTheme.xaml"/>
+                <ResourceDictionary Source="/IntuneComplianceMonitor;component/DarkTheme.xaml" />
                 <!-- Add the styles dictionary -->
-                <ResourceDictionary Source="/IntuneComplianceMonitor;component/AppStyles.xaml"/>
+                <ResourceDictionary Source="/IntuneComplianceMonitor;component/AppStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         </ResourceDictionary>
-
     </Application.Resources>
-  
-
 </Application>

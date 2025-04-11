@@ -7,179 +7,178 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="250"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="250" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- Left sidebar with navigation -->
         <Border Grid.Column="0" Background="#1E1E1E">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <Image Source="/tag.png" 
-                       Width="82" 
-                       Height="68" 
-                       HorizontalAlignment="Left" 
-                       VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <Image Source="/tag.png"
+                       Width="82"
+                       Height="68"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Center" Margin="10,0,0,0" />
                 <!-- App title -->
-                <TextBlock Grid.Row="0" 
-                           Text="Intune Compliance Monitor" 
-                           FontSize="20" 
-                           FontWeight="Bold" 
-                           Foreground="White" 
+                <TextBlock Grid.Row="0"
+                           Text="Intune Compliance Monitor"
+                           FontSize="20"
+                           FontWeight="Bold"
+                           Foreground="White"
                            Margin="97,30,20,30"
-                           TextWrapping="Wrap"/>
+                           TextWrapping="Wrap" />
 
                 <!-- Navigation buttons -->
                 <StackPanel Grid.Row="1" Margin="0,20,0,0">
-                    <Button Content="Dashboard" 
-                            Tag="Dashboard" 
+                    <Button Content="Dashboard"
+                            Tag="Dashboard"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="0"
                             HorizontalContentAlignment="Left"
                             Padding="20,12"
                             Margin="5,2"
-                            Click="NavigationButton_Click"/>
+                            Click="NavigationButton_Click" />
 
-                    <Button Content="All Devices" 
-                            Tag="Devices" 
+                    <Button Content="All Devices"
+                            Tag="Devices"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="0"
                             HorizontalContentAlignment="Left"
                             Padding="20,12"
                             Margin="5,2"
-                            Click="NavigationButton_Click"/>
+                            Click="NavigationButton_Click" />
 
-                    <Button Content="Not Checked In" 
-                            Tag="NotCheckedIn" 
+                    <Button Content="Not Checked In"
+                            Tag="NotCheckedIn"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="0"
                             HorizontalContentAlignment="Left"
                             Padding="20,12"
                             Margin="5,2"
-                            Click="NavigationButton_Click"/>
-                    <Button Content="Location" 
-         Tag="Location" 
+                            Click="NavigationButton_Click" />
+                    <Button Content="Location"
+         Tag="Location"
          Background="Transparent"
          Foreground="White"
          BorderThickness="0"
          HorizontalContentAlignment="Left"
          Padding="20,12"
          Margin="5,2"
-         Click="NavigationButton_Click"/>
-                    <Button Content="Compliance" 
-                            Tag="Compliance" 
+         Click="NavigationButton_Click" />
+                    <Button Content="Compliance"
+                            Tag="Compliance"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="0"
                             HorizontalContentAlignment="Left"
                             Padding="20,12"
                             Margin="5,2"
-                            Click="NavigationButton_Click"/>
-                    <Button Content="Settings" 
-                            Tag="Settings" 
+                            Click="NavigationButton_Click" />
+                    <Button Content="Settings"
+                            Tag="Settings"
                             Background="Transparent"
                             Foreground="White"
                             BorderThickness="0"
                             HorizontalContentAlignment="Left"
                             Padding="20,12"
                             Margin="5,2"
-                            Click="NavigationButton_Click"/>
-
+                            Click="NavigationButton_Click" />
 
                     <StatusBar DockPanel.Dock="Bottom" Background="Transparent">
                         <StatusBarItem Foreground="White" Content="{Binding TokenStatus}" />
                         <StatusBarItem Foreground="White" Content="{Binding CurrentUser}" />
                         <StatusBarItem>
-                            <Button Content="Logout" Command="{Binding LogoutCommand}" Click="Button_Click" 
-                                    Background="#0078D7" Foreground="White" Padding="8,2" BorderThickness="0" Height="26" Width="96"/>
+                            <Button Content="Logout" Command="{Binding LogoutCommand}" Click="Button_Click"
+                                    Background="#0078D7" Foreground="White" Padding="8,2" BorderThickness="0" Height="26" Width="96" />
                         </StatusBarItem>
                     </StatusBar>
                 </StackPanel>
 
                 <!-- Sync button at bottom -->
-                <Button Grid.Row="2" 
-                        Content="Sync from Intune" 
+                <Button Grid.Row="2"
+                        Content="Sync from Intune"
                         Background="#0078D7"
                         Foreground="White"
                         Padding="15,8"
                         BorderThickness="0"
-                        Margin="20,20,20,30" 
-                        Click="SyncButton_Click"/>
-                <Image HorizontalAlignment="Left" Height="100" Margin="54,75,0,0" Grid.RowSpan="2" VerticalAlignment="Top" Width="100"/>
+                        Margin="20,20,20,30"
+                        Click="SyncButton_Click" />
+                <Image HorizontalAlignment="Left" Height="100" Margin="54,75,0,0" Grid.RowSpan="2" VerticalAlignment="Top" Width="100" />
             </Grid>
         </Border>
 
         <!-- Main content area -->
         <Grid Grid.Column="1" Background="#2D2D30">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Header with title and refresh button -->
             <Grid Grid.Row="0" Margin="20,20,20,10">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" 
-                           Text="Intune Compliance Dashboard" 
-                           FontSize="24" 
-                           FontWeight="Bold" 
+                <TextBlock Grid.Column="0"
+                           Text="Intune Compliance Dashboard"
+                           FontSize="24"
+                           FontWeight="Bold"
                            Foreground="White"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" />
 
-                <Button Grid.Column="1" 
-                        Content="Refresh" 
+                <Button Grid.Column="1"
+                        Content="Refresh"
                         Background="#0078D7"
                         Foreground="White"
                         Padding="15,8"
                         BorderThickness="0"
-                        Width="100" 
-                        Click="RefreshButton_Click"/>
+                        Width="100"
+                        Click="RefreshButton_Click" />
             </Grid>
 
             <!-- Main content frame -->
-            <Frame Grid.Row="1" 
-                   x:Name="MainFrame" 
-                   NavigationUIVisibility="Hidden" 
+            <Frame Grid.Row="1"
+                   x:Name="MainFrame"
+                   NavigationUIVisibility="Hidden"
                    Margin="10,0,10,10"
-                   Background="#2D2D30"/>
+                   Background="#2D2D30" />
 
             <!-- Status bar -->
-            <Border Grid.Row="2" 
-                    Background="#1E1E1E" 
-                    BorderBrush="#444444" 
+            <Border Grid.Row="2"
+                    Background="#1E1E1E"
+                    BorderBrush="#444444"
                     BorderThickness="0,1,0,0">
                 <Grid Margin="20,8">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Grid.Column="0" 
-                               x:Name="StatusText" 
+                    <TextBlock Grid.Column="0"
+                               x:Name="StatusText"
                                Foreground="#BBBBBB"
-                               VerticalAlignment="Center"/>
+                               VerticalAlignment="Center" />
 
-                    <ProgressBar Grid.Column="1" 
-                                 x:Name="StatusProgress" 
-                                 Width="100" 
-                                 Height="10" 
-                                 Margin="10,0,0,0" 
-                                 IsIndeterminate="True" 
+                    <ProgressBar Grid.Column="1"
+                                 x:Name="StatusProgress"
+                                 Width="100"
+                                 Height="10"
+                                 Margin="10,0,0,0"
+                                 IsIndeterminate="True"
                                  Visibility="Collapsed"
                                  Foreground="#0078D7"
-                                 Background="#444444"/>
+                                 Background="#444444" />
                 </Grid>
             </Border>
         </Grid>

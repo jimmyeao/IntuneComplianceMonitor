@@ -8,72 +8,71 @@
         ResizeMode="CanResize">
 
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
         <Style x:Key="NonCompliantRowStyle" TargetType="DataGridRow">
-            <Setter Property="Background" Value="#3F2020"/>
-            <Setter Property="Foreground" Value="#FF6B6B"/>
+            <Setter Property="Background" Value="#3F2020" />
+            <Setter Property="Foreground" Value="#FF6B6B" />
         </Style>
 
         <Style x:Key="CompliantRowStyle" TargetType="DataGridRow">
-            <Setter Property="Background" Value="#1F3F2F"/>
-            <Setter Property="Foreground" Value="#90EEC7"/>
+            <Setter Property="Background" Value="#1F3F2F" />
+            <Setter Property="Foreground" Value="#90EEC7" />
         </Style>
 
         <Style x:Key="ErrorRowStyle" TargetType="DataGridRow">
-            <Setter Property="Background" Value="#3F2020"/>
-            <Setter Property="Foreground" Value="#FF6B6B"/>
+            <Setter Property="Background" Value="#3F2020" />
+            <Setter Property="Foreground" Value="#FF6B6B" />
         </Style>
 
         <Style x:Key="NotApplicableRowStyle" TargetType="DataGridRow">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Background" Value="#2D2D30" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         </Style>
 
         <!-- Customized Tab Control -->
         <Style x:Key="DetailTabControl" TargetType="TabControl" BasedOn="{StaticResource DarkTabControlStyle}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
         </Style>
 
         <Style x:Key="DetailTabItem" TargetType="TabItem" BasedOn="{StaticResource DarkTabItemStyle}">
-            <Setter Property="Background" Value="#252529"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="15,8"/>
-            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Background" Value="#252529" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="15,8" />
+            <Setter Property="Margin" Value="0,0,4,0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border Name="Border" 
-                                Background="{TemplateBinding Background}" 
+                        <Border Name="Border"
+                                Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="0,0,0,0" 
+                                BorderThickness="0,0,0,0"
                                 CornerRadius="4,4,0,0"
                                 Margin="{TemplateBinding Margin}"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter x:Name="ContentSite" 
-                                              ContentSource="Header" 
-                                              HorizontalAlignment="Center" 
-                                              VerticalAlignment="Center"/>
+                            <ContentPresenter x:Name="ContentSite"
+                                              ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#3E3E42"/>
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                                <Setter TargetName="Border" Property="BorderThickness" Value="0,0,0,2"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter Property="Background" Value="#3E3E42" />
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter TargetName="Border" Property="BorderThickness" Value="0,0,0,2" />
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3E3E42"/>
+                                <Setter Property="Background" Value="#3E3E42" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
     </Window.Resources>
 
     <!-- Main Grid with content and loading overlay -->
@@ -81,25 +80,25 @@
         <!-- Main content -->
         <Grid Margin="20">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <!-- Device Header -->
             <StackPanel Orientation="Vertical" Margin="0,0,0,15">
-                <TextBlock Text="{Binding Device.DeviceName}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                <TextBlock Text="{Binding Device.OSVersion}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
-                <TextBlock Text="{Binding Device.Owner}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding Device.DeviceName}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="{Binding Device.OSVersion}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" />
+                <TextBlock Text="{Binding Device.Owner}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" />
             </StackPanel>
 
             <!-- Tab Content -->
-            <TabControl Grid.Row="1" 
+            <TabControl Grid.Row="1"
                         Style="{StaticResource DetailTabControl}">
 
                 <!-- Compliance Tab -->
-                <TabItem Header="Compliance" 
+                <TabItem Header="Compliance"
                          Style="{StaticResource DetailTabItem}">
-                    <DataGrid ItemsSource="{Binding PolicyStates}" 
+                    <DataGrid ItemsSource="{Binding PolicyStates}"
                               x:Name="ComplianceDataGrid"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
@@ -117,12 +116,12 @@
 
                         <DataGrid.Resources>
                             <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                                <Setter Property="Padding" Value="10,8"/>
-                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                <Setter Property="Background" Value="{StaticResource SecondaryBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter Property="Padding" Value="10,8" />
+                                <Setter Property="BorderThickness" Value="0,0,0,1" />
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                                <Setter Property="HorizontalContentAlignment" Value="Left" />
                             </Style>
 
                             <Style TargetType="DataGridRow">
@@ -135,26 +134,26 @@
 
                                     <!-- Not Compliant -->
                                     <DataTrigger Binding="{Binding State}" Value="Non-Compliant">
-                                        <Setter Property="Background" Value="#3F2020"/>
-                                        <Setter Property="Foreground" Value="#FF6B6B"/>
+                                        <Setter Property="Background" Value="#3F2020" />
+                                        <Setter Property="Foreground" Value="#FF6B6B" />
                                     </DataTrigger>
 
                                     <!-- Compliant -->
                                     <DataTrigger Binding="{Binding State}" Value="Compliant">
-                                        <Setter Property="Background" Value="#1F3F2F"/>
-                                        <Setter Property="Foreground" Value="#90EEC7"/>
+                                        <Setter Property="Background" Value="#1F3F2F" />
+                                        <Setter Property="Foreground" Value="#90EEC7" />
                                     </DataTrigger>
 
                                     <!-- Not Applicable -->
                                     <DataTrigger Binding="{Binding State}" Value="Not Applicable">
-                                        <Setter Property="Background" Value="#2D2D30"/>
-                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                        <Setter Property="Background" Value="#2D2D30" />
+                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
                                     </DataTrigger>
 
                                     <!-- Error -->
                                     <DataTrigger Binding="{Binding State}" Value="Error">
-                                        <Setter Property="Background" Value="#3F2020"/>
-                                        <Setter Property="Foreground" Value="#FF6B6B"/>
+                                        <Setter Property="Background" Value="#3F2020" />
+                                        <Setter Property="Foreground" Value="#FF6B6B" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -164,36 +163,36 @@
                             <DataGridTextColumn Header="Policy Name" Binding="{Binding DisplayName}" Width="*">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}"/>
+                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="State" Binding="{Binding State}" Width="150">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}"/>
+                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="User" Binding="{Binding UserPrincipalName}" Width="250">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}"/>
+                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="Last Contacted" Binding="{Binding LastReportedDateTime}" Width="200">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}"/>
+                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="Error Details" Binding="{Binding ErrorDetailsList}" Width="*">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}"/>
-                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" />
+                                        <Setter Property="TextWrapping" Value="Wrap" />
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
@@ -202,7 +201,7 @@
                 </TabItem>
 
                 <!-- Configuration Profiles Tab -->
-                <TabItem Header="Configuration Profiles" 
+                <TabItem Header="Configuration Profiles"
                          Style="{StaticResource DetailTabItem}">
                     <Grid>
                         <!-- Loading Indicator -->
@@ -212,7 +211,7 @@
                                    Visibility="{Binding IsLoadingProfiles, Converter={StaticResource BoolToVisibilityConverter}}"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Top"
-                                   Margin="0,10"/>
+                                   Margin="0,10" />
 
                         <!-- The ListBox will be shown when not loading -->
                         <ListBox ItemsSource="{Binding ConfigurationProfiles}"
@@ -222,24 +221,24 @@
                                  BorderThickness="0">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{StaticResource BorderBrush}" 
-                                            BorderThickness="1" 
-                                            Padding="10" 
-                                            Margin="0,0,0,10" 
+                                    <Border BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            Padding="10"
+                                            Margin="0,0,0,10"
                                             CornerRadius="4"
                                             Background="{StaticResource CardBackgroundBrush}">
                                         <StackPanel>
-                                            <TextBlock Text="{Binding DisplayName}" 
-                                                       FontWeight="Bold" 
-                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                                            <TextBlock Text="{Binding Description}" 
-                                                       FontSize="12" 
-                                                       TextWrapping="Wrap" 
-                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
-                                            <TextBlock Text="{Binding Status}" 
-                                                       FontSize="11" 
-                                                       FontStyle="Italic" 
-                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       FontWeight="Bold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="12"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                            <TextBlock Text="{Binding Status}"
+                                                       FontSize="11"
+                                                       FontStyle="Italic"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -249,32 +248,32 @@
                 </TabItem>
 
                 <!-- Device Properties -->
-                <TabItem Header="Device Properties" 
+                <TabItem Header="Device Properties"
                          Style="{StaticResource DetailTabItem}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
                         <Grid Margin="0,0,0,10">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Serial Number:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Device.SerialNumber}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Serial Number:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Device.SerialNumber}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Manufacturer:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Device.Manufacturer}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Manufacturer:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Device.Manufacturer}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Model:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Device.Model}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Model:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Device.Model}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Ownership:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Device.Ownership}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Ownership:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Device.Ownership}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}" />
                         </Grid>
                     </ScrollViewer>
                 </TabItem>
@@ -282,22 +281,22 @@
         </Grid>
 
         <!-- Loading overlay -->
-        <Border x:Name="LoadingOverlay" 
-                Background="#80000000" 
+        <Border x:Name="LoadingOverlay"
+                Background="#80000000"
                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
             <Grid>
-                <StackPanel VerticalAlignment="Center" 
+                <StackPanel VerticalAlignment="Center"
                             HorizontalAlignment="Center">
-                    <TextBlock Text="Loading device details..." 
-                              FontSize="18" 
-                              Foreground="White" 
+                    <TextBlock Text="Loading device details..."
+                              FontSize="18"
+                              Foreground="White"
                               HorizontalAlignment="Center"
-                              Margin="0,0,0,20"/>
-                    <ProgressBar Width="250" 
-                                Height="10" 
-                                IsIndeterminate="True" 
+                              Margin="0,0,0,20" />
+                    <ProgressBar Width="250"
+                                Height="10"
+                                IsIndeterminate="True"
                                 Foreground="#0078D7"
-                                Background="#444444"/>
+                                Background="#444444" />
                 </StackPanel>
             </Grid>
         </Border>

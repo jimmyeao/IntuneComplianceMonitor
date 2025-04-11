@@ -7,60 +7,60 @@
     <Grid Margin="20">
         <StackPanel>
             <!-- POLICY -->
-            <TextBlock Text="{Binding Policy.DisplayName}" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
+            <TextBlock Text="{Binding Policy.DisplayName}" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" />
 
-            <TextBlock Text="Compliance State:" FontWeight="Bold"/>
+            <TextBlock Text="Compliance State:" FontWeight="Bold" />
             <TextBlock Text="{Binding Policy.State}" Margin="0,0,0,10">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
-                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Policy.State}" Value="Non-Compliant">
-                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Policy.State}" Value="Compliant">
-                                <Setter Property="Foreground" Value="{StaticResource PositiveBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource PositiveBrush}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Policy.State}" Value="Error">
-                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
 
-            <TextBlock Text="User:" FontWeight="Bold"/>
-            <TextBlock Text="{Binding Policy.UserPrincipalName}" Margin="0,0,0,10"/>
+            <TextBlock Text="User:" FontWeight="Bold" />
+            <TextBlock Text="{Binding Policy.UserPrincipalName}" Margin="0,0,0,10" />
 
-            <TextBlock Text="Last Reported:" FontWeight="Bold"/>
-            <TextBlock Text="{Binding Policy.LastReportedDateTime}" Margin="0,0,0,10"/>
+            <TextBlock Text="Last Reported:" FontWeight="Bold" />
+            <TextBlock Text="{Binding Policy.LastReportedDateTime}" Margin="0,0,0,10" />
 
             <!-- DEVICE DETAILS -->
-            <TextBlock Text="Device Name:" FontWeight="Bold"/>
-            <TextBlock Text="{Binding Device.DeviceName}" Margin="0,0,0,10"/>
+            <TextBlock Text="Device Name:" FontWeight="Bold" />
+            <TextBlock Text="{Binding Device.DeviceName}" Margin="0,0,0,10" />
 
-            <TextBlock Text="OS Version:" FontWeight="Bold"/>
-            <TextBlock Text="{Binding Device.OSVersion}" Margin="0,0,0,10"/>
+            <TextBlock Text="OS Version:" FontWeight="Bold" />
+            <TextBlock Text="{Binding Device.OSVersion}" Margin="0,0,0,10" />
 
-            <TextBlock Text="Serial Number:" FontWeight="Bold"/>
-            <TextBlock Text="{Binding Device.SerialNumber}" Margin="0,0,0,10"/>
+            <TextBlock Text="Serial Number:" FontWeight="Bold" />
+            <TextBlock Text="{Binding Device.SerialNumber}" Margin="0,0,0,10" />
 
-            <TextBlock Text="Last Seen:" FontWeight="Bold"/>
-            <TextBlock Text="{Binding Device.LastCheckIn}" Margin="0,0,0,10"/>
+            <TextBlock Text="Last Seen:" FontWeight="Bold" />
+            <TextBlock Text="{Binding Device.LastCheckIn}" Margin="0,0,0,10" />
 
             <!-- ERRORS -->
-            <TextBlock Text="Error Details:" FontWeight="Bold"/>
-            <Border Background="{StaticResource CardBackgroundBrush}" 
-                    BorderBrush="{StaticResource BorderBrush}" 
-                    BorderThickness="1" 
-                    CornerRadius="4" 
-                    Padding="10" 
+            <TextBlock Text="Error Details:" FontWeight="Bold" />
+            <Border Background="{StaticResource CardBackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="10"
                     Margin="0,5,0,0">
                 <ItemsControl ItemsSource="{Binding Policy.ErrorDetails}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock TextWrapping="Wrap" Margin="0,2">
-                                <Run Text="•  " FontWeight="Bold"/>
+                                <Run Text="•  " FontWeight="Bold" />
                                 <Run Text="{Binding Mode=OneWay}" />
                             </TextBlock>
                         </DataTemplate>

@@ -17,7 +17,7 @@
                    FontSize="16"
                    FontWeight="SemiBold"
                    Margin="0,0,0,10"
-                   HorizontalAlignment="Center"/>
-        <ProgressBar IsIndeterminate="True" Width="250" Height="20"/>
+                   HorizontalAlignment="Center" />
+        <ProgressBar IsIndeterminate="True" Width="250" Height="20" />
     </StackPanel>
 </Window>
