@@ -57,8 +57,21 @@ namespace IntuneComplianceMonitor
         {
             if (sender is Button button)
             {
-                string pageName = button.Tag.ToString();
-                NavigateToPage(pageName);
+                string? pageName = button.Tag.ToString();
+                try
+                {
+                    NavigateToPage(pageName);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error navigating to page {pageName}: {ex.Message}");
+                    MessageBox.Show($"Error navigating to page: {ex.Message}", "Navigation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    // Highlight the clicked button
+                    HighlightNavigationButton(pageName);
+                }
             }
         }
         // Add this improved UpdateStatus method to MainWindow.xaml.cs
