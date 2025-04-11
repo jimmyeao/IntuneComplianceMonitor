@@ -1,6 +1,10 @@
 ﻿using IntuneComplianceMonitor.ViewModels;
+using IntuneComplianceMonitor.Views;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
 using Application = System.Windows.Application;
 
 namespace IntuneComplianceMonitor.Views
@@ -33,7 +37,7 @@ namespace IntuneComplianceMonitor.Views
             // Set up property change notification to update loading state in the UI
             _viewModel.PropertyChanged += (s, args) =>
             {
-                if (args.PropertyName == "IsLoading")
+                if (args.PropertyName == "IsLoading" || args.PropertyName == "StatusMessage")
                 {
                     // If the main window has a status bar, update it
                     if (Application.Current.MainWindow is MainWindow mainWindow)
@@ -44,23 +48,48 @@ namespace IntuneComplianceMonitor.Views
             };
 
             // Wire up refresh handler so ViewModel can trigger reload from UI
-            _viewModel.OnRefreshRequested = async () => await RefreshComplianceData(_viewModel);
+            _viewModel.OnRefreshRequested = async () => await LoadComplianceData(_viewModel, forceRefresh: true);
 
-            // Initial data load
-            await RefreshComplianceData(_viewModel);
+            // Initial data load - use cache by default
+            await LoadComplianceData(_viewModel, forceRefresh: false);
         }
 
-        private async Task RefreshComplianceData(CompliancePolicyViewModel viewModel)
+        private void DevicesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            // Set loading state directly in the ViewModel
-            viewModel.IsLoading = true;
-            viewModel.StatusMessage = "Loading compliance data...";
+            // Check if the click came from a column header - allow built-in sorting to work
+            DependencyObject source = (DependencyObject)e.OriginalSource;
+            while (source != null && source is not DataGridRow)
+            {
+                if (source is DataGridColumnHeader)
+                    return; // exit: let sorting happen
 
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            // If a row was double-clicked, open device details
+            if (DevicesDataGrid.SelectedItem is DeviceViewModel selectedDevice)
+            {
+                var detailsWindow = new DeviceDetailsWindow(selectedDevice);
+                detailsWindow.Owner = Window.GetWindow(this);
+                detailsWindow.ShowDialog();
+            }
+        }
+
+        private async Task LoadComplianceData(CompliancePolicyViewModel viewModel, bool forceRefresh)
+        {
             try
             {
-                // Clear cache and force reload
-                ServiceManager.Instance.DataCacheService.ClearCompliancePolicyCache();
-                await viewModel.LoadData(forceRefresh: true);
+                // Set loading state directly in the ViewModel
+                if (!viewModel.IsLoading)
+                {
+                    viewModel.IsLoading = true;
+                    viewModel.StatusMessage = forceRefresh
+                        ? "Refreshing compliance data from Intune..."
+                        : "Loading compliance data...";
+                }
+
+                // Load data with caching behavior
+                await viewModel.LoadData(forceRefresh);
             }
             catch (Exception ex)
             {

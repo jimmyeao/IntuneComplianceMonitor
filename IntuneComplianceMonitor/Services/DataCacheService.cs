@@ -92,16 +92,24 @@ namespace IntuneComplianceMonitor.Services
             try
             {
                 string path = Path.Combine(CacheDirectory, CompliancePolicyCacheFile);
-                if (!File.Exists(path)) return null;
+                if (!File.Exists(path))
+                {
+                    System.Diagnostics.Debug.WriteLine("Compliance policy cache file does not exist");
+                    return null;
+                }
 
                 var json = await File.ReadAllTextAsync(path);
                 var data = JsonSerializer.Deserialize<CompliancePolicyCacheData>(json);
 
-                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(24))
+                // Check if cache is expired (24 hours)
+                if (DateTime.Now - data.CacheTime > TimeSpan.FromHours(CacheExpiryHours))
                 {
                     System.Diagnostics.Debug.WriteLine("Compliance policy cache expired");
                     return null;
                 }
+
+                System.Diagnostics.Debug.WriteLine($"Loaded {data.GroupedData.Count} policy groups from cache");
+                System.Diagnostics.Debug.WriteLine($"Cache age: {DateTime.Now - data.CacheTime}");
 
                 return data.GroupedData;
             }
@@ -111,7 +119,6 @@ namespace IntuneComplianceMonitor.Services
                 return null;
             }
         }
-
         public async Task<List<DeviceViewModel>> GetDeviceLocationCacheAsync()
         {
             try

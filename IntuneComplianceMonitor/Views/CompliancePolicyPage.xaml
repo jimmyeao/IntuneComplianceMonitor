@@ -45,6 +45,7 @@
 
             <!-- Results Table -->
             <DataGrid Grid.Row="1"
+                      x:Name="DevicesDataGrid"
                       ItemsSource="{Binding Devices}"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
@@ -54,7 +55,8 @@
                       GridLinesVisibility="Horizontal"
                       RowBackground="#333337"
                       AlternatingRowBackground="#2D2D35"
-                      HeadersVisibility="Column">
+                      HeadersVisibility="Column"
+                      MouseDoubleClick="DevicesDataGrid_MouseDoubleClick">
                 <DataGrid.ColumnHeaderStyle>
                     <Style TargetType="DataGridColumnHeader">
                         <Setter Property="Background" Value="#1E1E1E" />
