@@ -5,7 +5,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,22 +14,49 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using IntuneComplianceMonitor.ViewModels;
-
 
 namespace IntuneComplianceMonitor.Views
 {
     /// <summary>
     /// Interaction logic for DeviceDetailsWindow.xaml
     /// </summary>
-    public partial class DeviceDetailsWindow : Window
+    public partial class DeviceDetailsWindow : Window, INotifyPropertyChanged
     {
         private readonly DeviceViewModel _device;
+        private bool _isLoading = true;
+        private bool _isLoadingProfiles;
+
         public ObservableCollection<CompliancePolicyStateViewModel> PolicyStates { get; set; } = new();
         public ObservableCollection<ConfigurationProfileViewModel> ConfigurationProfiles { get; set; } = new();
-        public bool IsLoadingProfiles { get; set; }
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                if (_isLoading != value)
+                {
+                    _isLoading = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool IsLoadingProfiles
+        {
+            get => _isLoadingProfiles;
+            set
+            {
+                if (_isLoadingProfiles != value)
+                {
+                    _isLoadingProfiles = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public DeviceViewModel Device => _device;
-       
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public DeviceDetailsWindow(DeviceViewModel device)
@@ -41,13 +67,37 @@ namespace IntuneComplianceMonitor.Views
             // Set DataContext to this to bind properties like PolicyStates
             DataContext = this;
 
-            Loaded += async (_, __) =>
-            {
-                await LoadComplianceDetailsAsync();
-                await LoadConfigurationProfilesAsync();
-                ComplianceDataGrid.Items.Refresh();
+            // Start with loading state
+            IsLoading = true;
+            IsLoadingProfiles = true;
 
-            };
+            Loaded += DeviceDetailsWindow_Loaded;
+        }
+
+        private async void DeviceDetailsWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Load data in parallel
+                await Task.WhenAll(
+                    LoadComplianceDetailsAsync(),
+                    LoadConfigurationProfilesAsync()
+                );
+
+                // Refresh the UI
+                ComplianceDataGrid.Items.Refresh();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading device details: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                // Hide loading overlay when done
+                IsLoading = false;
+                IsLoadingProfiles = false;
+            }
         }
 
         private async Task LoadConfigurationProfilesAsync()
@@ -71,49 +121,56 @@ namespace IntuneComplianceMonitor.Views
                         ConfigurationProfiles.Add(profile);
                         System.Diagnostics.Debug.WriteLine($"Added profile: {profile.DisplayName}");
                     }
-
-                    // Make sure the DataGrid or ListView is refreshed
-                    // If you have a DataGrid or ListView for displaying profiles, add code to refresh it
                 });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading configuration profiles: {ex.Message}");
-                MessageBox.Show($"Error loading configuration profiles: {ex.Message}",
-                    "Profile Loading Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                throw;
             }
             finally
             {
                 IsLoadingProfiles = false;
             }
         }
+
         private async Task LoadComplianceDetailsAsync()
         {
-            var list = await ServiceManager.Instance.IntuneService
-                .GetDeviceComplianceStateWithMetadataAsync(_device.DeviceId);
-
-            Application.Current.Dispatcher.Invoke(() =>
+            try
             {
-                PolicyStates.Clear();
-                foreach (var item in list)
-                {
-                    // Highlight items that are non-compliant or in error
-                    if (item.State.ToLower() == "noncompliant" ||
-                        item.State.ToLower() == "error")
-                    {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Non-Compliant Policy: {item.DisplayName}" +
-                            $"\nError Details: {string.Join("; ", item.ErrorDetails)}");
-                    }
+                var list = await ServiceManager.Instance.IntuneService
+                    .GetDeviceComplianceStateWithMetadataAsync(_device.DeviceId);
 
-                    PolicyStates.Add(item);
-                }
-            });
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    PolicyStates.Clear();
+                    foreach (var item in list)
+                    {
+                        // Highlight items that are non-compliant or in error
+                        if (item.State.ToLower() == "noncompliant" ||
+                            item.State.ToLower() == "error")
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                $"Non-Compliant Policy: {item.DisplayName}" +
+                                $"\nError Details: {string.Join("; ", item.ErrorDetails)}");
+                        }
+
+                        PolicyStates.Add(item);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading compliance details: {ex.Message}");
+                throw;
+            }
         }
+
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
         private void ComplianceDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (ComplianceDataGrid.SelectedItem is CompliancePolicyStateViewModel selectedPolicy)
@@ -124,9 +181,5 @@ namespace IntuneComplianceMonitor.Views
                 detailsWindow.ShowDialog();
             }
         }
-
-
-
     }
-
 }

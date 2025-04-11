@@ -71,7 +71,8 @@
                        CredentialsProvider="{Binding BingMapsKey}"
                        Center="{Binding MapCenter}" 
                        ZoomLevel="{Binding ZoomLevel}"
-                       Mode="AerialWithLabels">
+                       Mode="AerialWithLabels"
+                       MouseLeftButtonUp="MyMap_MouseLeftButtonUp">
 
                     <!-- Device Pushpins are added in code behind -->
 

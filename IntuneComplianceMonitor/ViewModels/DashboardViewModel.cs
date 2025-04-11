@@ -385,7 +385,23 @@ namespace IntuneComplianceMonitor.ViewModels
                     if (cachedDevices != null && cachedDevices.Any())
                     {
                         _allDevicesCache = cachedDevices;
-                        StatusMessage = "Loaded from disk cache";
+
+                        // Check if we need to enrich with location data
+                        int devicesWithLocation = cachedDevices.Count(d => !string.IsNullOrEmpty(d.Country));
+                        System.Diagnostics.Debug.WriteLine($"Cached devices with location data: {devicesWithLocation} of {cachedDevices.Count}");
+
+                        if (devicesWithLocation < cachedDevices.Count * 0.5) // If less than half have location data
+                        {
+                            StatusMessage = "Enhancing device data with location information...";
+                            await ServiceManager.Instance.IntuneService.EnrichDevicesWithUserLocationAsync(_allDevicesCache);
+                            await ServiceManager.Instance.DataCacheService.SaveDevicesToCacheAsync(_allDevicesCache);
+                            StatusMessage = "Location data added to devices";
+                        }
+                        else
+                        {
+                            StatusMessage = "Loaded from disk cache";
+                        }
+
                         ApplyDeviceData(_allDevicesCache);
                         IsLoading = false;
                         return;
@@ -399,16 +415,25 @@ namespace IntuneComplianceMonitor.ViewModels
                     var (devices, deviceTypeCounts) = await ServiceManager.Instance.IntuneService.GetNonCompliantDevicesAsync();
                     _allDevicesCache = devices;
 
-                    // Save to cache
-                    await ServiceManager.Instance.DataCacheService.SaveDevicesToCacheAsync(devices);
+                    // Enrich with location data
+                    StatusMessage = "Enhancing with location data...";
+                    await ServiceManager.Instance.IntuneService.EnrichDevicesWithUserLocationAsync(_allDevicesCache);
 
-                    StatusMessage = "Data loaded from Intune";
+                    // Save to cache with location data included
+                    await ServiceManager.Instance.DataCacheService.SaveDevicesToCacheAsync(_allDevicesCache);
+
+                    StatusMessage = "Data loaded from Intune with location information";
                 }
                 else
                 {
                     StatusMessage = "Loading sample data...";
                     _allDevicesCache = await ServiceManager.Instance.SampleDataService.GetDevicesAsync();
-                    StatusMessage = "Sample data loaded";
+
+                    // Enrich sample data with location information
+                    StatusMessage = "Adding location information to sample data...";
+                    await ServiceManager.Instance.IntuneService.EnrichDevicesWithUserLocationAsync(_allDevicesCache);
+
+                    StatusMessage = "Sample data loaded with location information";
                 }
 
                 ApplyDeviceData(_allDevicesCache);
@@ -423,7 +448,6 @@ namespace IntuneComplianceMonitor.ViewModels
                 IsLoading = false;
             }
         }
-
         public async Task LoadQuickStatsAsync()
         {
             try
@@ -832,13 +856,14 @@ namespace IntuneComplianceMonitor.ViewModels
             {
                 var filtered = _allDevicesCache.AsEnumerable();
 
-                // Apply search filter
+                // Apply search filter (modified to check country field)
                 if (!string.IsNullOrWhiteSpace(SearchText))
                 {
                     filtered = filtered.Where(d =>
                         (d.DeviceName != null && d.DeviceName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
                         (d.Owner != null && d.Owner.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
-                        (d.SerialNumber != null && d.SerialNumber.Contains(SearchText, StringComparison.OrdinalIgnoreCase)));
+                        (d.SerialNumber != null && d.SerialNumber.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                        (d.Country != null && d.Country.Contains(SearchText, StringComparison.OrdinalIgnoreCase))); // Added country check
                 }
 
                 // Apply device type filter
@@ -846,7 +871,7 @@ namespace IntuneComplianceMonitor.ViewModels
                 {
                     filtered = filtered.Where(d => d.DeviceType == SelectedDeviceType);
                 }
-               
+
                 // Apply ownership filter
                 if (!string.IsNullOrWhiteSpace(SelectedOwnership))
                 {
@@ -859,7 +884,6 @@ namespace IntuneComplianceMonitor.ViewModels
                     var cutoffDate = DateTime.Now.AddDays(-DaysNotCheckedIn);
                     filtered = filtered.Where(d => d.LastCheckIn < cutoffDate);
                 }
-
 
                 // Apply non-compliant filter
                 if (ShowOnlyNonCompliant)
@@ -876,7 +900,6 @@ namespace IntuneComplianceMonitor.ViewModels
                 MessageBox.Show($"Error applying filters: {ex.Message}", "Filter Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
         private void ExportData()
         {
             // In a real app, this would export the data to CSV or Excel

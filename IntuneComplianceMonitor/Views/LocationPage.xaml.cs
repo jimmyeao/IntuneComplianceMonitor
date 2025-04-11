@@ -3,6 +3,7 @@ using Microsoft.Maps.MapControl.WPF;
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -78,70 +79,142 @@ namespace IntuneComplianceMonitor.Views
             }
         }
 
+        private void CreateClickablePushpin(Location location, string countryName, int deviceCount, Color pinColor)
+        {
+            // Create a simple, directly clickable pushpin
+            Pushpin pushpin = new Pushpin();
+            pushpin.Location = location;
+            pushpin.Content = deviceCount.ToString();
+            pushpin.Background = new SolidColorBrush(pinColor);
+            pushpin.Foreground = Brushes.White;
+            pushpin.FontWeight = FontWeights.Bold;
+            pushpin.Tag = countryName;
+
+            // Use preview events which work more reliably
+            pushpin.PreviewMouseLeftButtonDown += (s, e) =>
+            {
+                // Mark the event as handled to prevent map panning
+                e.Handled = true;
+            };
+
+            pushpin.PreviewMouseLeftButtonUp += (s, e) =>
+            {
+                // Navigate to devices view for this country
+                NavigateToDevicesWithCountryFilter(countryName);
+                e.Handled = true;
+            };
+
+            // Add tooltip
+            ToolTipService.SetToolTip(pushpin, $"{countryName}: {deviceCount} devices");
+
+            // Add to map
+            MyMap.Children.Add(pushpin);
+        }
+
+        // Updated method to use the new approach
         private void AddPushpinsToMap(System.Collections.Generic.List<CountryDeviceCount> countryData)
         {
             // Clear existing pushpins
             MyMap.Children.Clear();
 
-            // Add a pushpin for each country
+            // Add a pushpin for each country using the direct method
             foreach (var country in countryData)
             {
-                // Create location
-                var location = new Location(country.Latitude, country.Longitude);
+                CreateClickablePushpin(
+                    new Location(country.Latitude, country.Longitude),
+                    country.CountryName,
+                    country.Count,
+                    country.PushpinColor
+                );
+            }
 
-                // Calculate size based on count - make it more proportional
-                double baseSize = 40; // Minimum size
-                double maxSize = 100; // Maximum size
-                double sizeIncrement = Math.Min(country.Count / 2.0, (maxSize - baseSize));
-                double size = baseSize + sizeIncrement;
-
-                // Create a Grid to hold the pushpin content for better centering
-                Grid pinGrid = new Grid();
-                pinGrid.Width = size;
-                pinGrid.Height = size;
-
-                // Create an ellipse for the background
-                Ellipse ellipse = new Ellipse
+            // Debug output
+            System.Diagnostics.Debug.WriteLine($"Added {countryData.Count} clickable pushpins to the map");
+        }
+        private void MyMap_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // Check if we hit a pushpin
+            var hitTestResult = VisualTreeHelper.HitTest(MyMap, e.GetPosition(MyMap));
+            if (hitTestResult != null)
+            {
+                // Walk up the visual tree to find a pushpin or button
+                DependencyObject depObj = hitTestResult.VisualHit;
+                while (depObj != null)
                 {
-                    Width = size,
-                    Height = size,
-                    Fill = new SolidColorBrush(country.PushpinColor),
-                    Stroke = Brushes.White,
-                    StrokeThickness = 2
-                };
+                    if (depObj is Pushpin pushpin && pushpin.Tag is string countryName)
+                    {
+                        NavigateToDevicesWithCountryFilter(countryName);
+                        e.Handled = true;
+                        return;
+                    }
+                    else if (depObj is Button button && button.Tag is string buttonTag)
+                    {
+                        NavigateToDevicesWithCountryFilter(buttonTag);
+                        e.Handled = true;
+                        return;
+                    }
 
-                // Create text with better formatting
-                TextBlock countText = new TextBlock
+                    // Move up the visual tree
+                    depObj = VisualTreeHelper.GetParent(depObj);
+                }
+            }
+        }
+        private void Pushpin_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Pushpin pushpin && pushpin.Tag is string countryName)
+            {
+                // Navigate to the Devices page with country filter
+                NavigateToDevicesWithCountryFilter(countryName);
+
+                // Mark the event as handled
+                e.Handled = true;
+            }
+        }
+
+        private void NavigateToDevicesWithCountryFilter(string countryName)
+        {
+            try
+            {
+                // Find the MainWindow
+                if (Application.Current.MainWindow is MainWindow mainWindow)
                 {
-                    Text = country.Count.ToString(),
-                    Foreground = Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    FontSize = Math.Max(12, Math.Min(size / 2.5, 20)), // Adjust font size based on pin size
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                    VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                    TextAlignment = TextAlignment.Center
-                };
+                    // Create a new DevicesPage
+                    var devicesPage = new DevicesPage();
 
-                // Add the elements to the grid
-                pinGrid.Children.Add(ellipse);
-                pinGrid.Children.Add(countText);
+                    // Wait for the page to load before applying filter
+                    devicesPage.Loaded += (s, e) =>
+                    {
+                        if (devicesPage.DataContext is DashboardViewModel viewModel)
+                        {
+                            // Clear any existing filters
+                            viewModel.SearchText = "";
+                            viewModel.SelectedDeviceType = "";
+                            viewModel.SelectedOwnership = "";
+                            viewModel.ShowOnlyNonCompliant = true; // Only show non-compliant devices
+                            viewModel.FilterByNotCheckedIn = false;
 
-                // Create the pushpin with our custom content
-                Pushpin pushpin = new Pushpin
-                {
-                    Location = location,
-                    Content = pinGrid,
-                    Background = Brushes.Transparent, // Make the pushpin background transparent
-                    BorderThickness = new Thickness(0) // No border
-                };
+                            // Set the country as search text
+                            viewModel.SearchText = countryName;
 
-                // Add tooltip with country name and count
-                ToolTipService.SetToolTip(pushpin, $"{country.CountryName}: {country.Count} devices");
-                ToolTipService.SetInitialShowDelay(pushpin, 0); // Show tooltip immediately
-                ToolTipService.SetShowDuration(pushpin, 7000); // Show for 7 seconds
+                            // Apply the filters
+                            viewModel.ApplyFilters();
 
-                // Add pushpin to map
-                MyMap.Children.Add(pushpin);
+                            // Update status
+                            viewModel.StatusMessage = $"Showing non-compliant devices in {countryName}";
+                        }
+                    };
+
+                    // Navigate to the devices page
+                    mainWindow.MainFrame.Navigate(devicesPage);
+
+                    // Highlight the "All Devices" button in the navigation
+                    mainWindow.HighlightNavigationButton("Devices");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error navigating to devices view: {ex.Message}",
+                    "Navigation Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         private async void Refresh_Click(object sender, RoutedEventArgs e)

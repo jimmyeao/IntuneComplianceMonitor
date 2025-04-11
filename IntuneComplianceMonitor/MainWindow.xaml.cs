@@ -5,6 +5,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 
 
@@ -61,7 +62,46 @@ namespace IntuneComplianceMonitor
             }
         }
         // Add this improved UpdateStatus method to MainWindow.xaml.cs
+        public void HighlightNavigationButton(string buttonTag)
+        {
+            // Find all buttons in the navigation
+            var buttons = FindVisualChildren<Button>(this)
+                .Where(b => b.Tag != null && b.Tag.ToString() != null);
 
+            // Reset all buttons to default style
+            foreach (var button in buttons)
+            {
+                button.Background = Brushes.Transparent;
+            }
+
+            // Find and highlight the requested button
+            var selectedButton = buttons.FirstOrDefault(b => b.Tag.ToString() == buttonTag);
+            if (selectedButton != null)
+            {
+                selectedButton.Background = new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30));
+            }
+        }
+
+        // Helper method to find visual children of a specified type
+        private static IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
+        {
+            if (depObj != null)
+            {
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+                {
+                    DependencyObject child = VisualTreeHelper.GetChild(depObj, i);
+                    if (child != null && child is T)
+                    {
+                        yield return (T)child;
+                    }
+
+                    foreach (T childOfChild in FindVisualChildren<T>(child))
+                    {
+                        yield return childOfChild;
+                    }
+                }
+            }
+        }
         public void UpdateStatus(string message, bool showProgress = false)
         {
             // Make sure we update on the UI thread

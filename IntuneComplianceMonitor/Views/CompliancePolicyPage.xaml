@@ -3,74 +3,97 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Title="CompliancePolicyPage">
 
-    <Grid Background="#1E1E1E" Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <Grid>
+        <!-- Main Content -->
+        <Grid Background="#1E1E1E" Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <!-- Filter Bar -->
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="Policy:" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
-            <ComboBox Width="200"
-                      ItemsSource="{Binding Policies}"
-                      SelectedItem="{Binding SelectedPolicy}"
-                      Style="{StaticResource DarkComboBoxStyle}"
-                      Margin="0,0,20,0"/>
+            <!-- Filter Bar -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="Policy:" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <ComboBox Width="200"
+                          ItemsSource="{Binding Policies}"
+                          SelectedItem="{Binding SelectedPolicy}"
+                          Style="{StaticResource DarkComboBoxStyle}"
+                          Margin="0,0,20,0"/>
 
-            <StackPanel Orientation="Vertical" Margin="0,0,20,0">
-                <TextBlock Text="Search" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,2"/>
-                <TextBox Width="200"
-                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         Background="#252529"
-                         Foreground="White"
-                         BorderBrush="#444444"
-                         Padding="6,4"/>
+                <StackPanel Orientation="Vertical" Margin="0,0,20,0">
+                    <TextBlock Text="Search" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                    <TextBox Width="200"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Background="#252529"
+                             Foreground="White"
+                             BorderBrush="#444444"
+                             Padding="6,4"/>
+                </StackPanel>
+
+                <Button Content="Apply"
+                        Command="{Binding ApplyFiltersCommand}"
+                        Background="#0078D7"
+                        Foreground="White"
+                        Padding="10,4"/>
+                <Button Content="Refresh"
+                        Command="{Binding RefreshCommand}"
+                        Background="#444"
+                        Foreground="White"
+                        Padding="10,4"
+                        Margin="10,0,0,0"/>
             </StackPanel>
 
-            <Button Content="Apply"
-                    Command="{Binding ApplyFiltersCommand}"
-                    Background="#0078D7"
-                    Foreground="White"
-                    Padding="10,4"/>
-            <Button Content="Refresh"
-        Command="{Binding RefreshCommand}"
-        Background="#444"
-        Foreground="White"
-        Padding="10,4"
-        Margin="10,0,0,0"/>
+            <!-- Results Table -->
+            <DataGrid Grid.Row="1"
+                      ItemsSource="{Binding Devices}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      Background="Transparent"
+                      Foreground="White"
+                      BorderBrush="#444444"
+                      GridLinesVisibility="Horizontal"
+                      RowBackground="#333337"
+                      AlternatingRowBackground="#2D2D35"
+                      HeadersVisibility="Column">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#1E1E1E"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Padding" Value="10,5"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="BorderBrush" Value="#444444"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200"/>
+                    <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="200"/>
+                    <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="140"/>
+                    <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="100"/>
+                    <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
 
-        </StackPanel>
-
-        <!-- Results Table -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding Devices}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  Background="Transparent"
-                  Foreground="White"
-                  BorderBrush="#444444"
-                  GridLinesVisibility="Horizontal"
-                  RowBackground="#333337"
-                  AlternatingRowBackground="#2D2D35"
-                  HeadersVisibility="Column">
-            <DataGrid.ColumnHeaderStyle>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="#1E1E1E"/>
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Padding" Value="10,5"/>
-                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    <Setter Property="BorderBrush" Value="#444444"/>
-                </Style>
-            </DataGrid.ColumnHeaderStyle>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Device Name" Binding="{Binding DeviceName}" Width="200"/>
-                <DataGridTextColumn Header="Owner" Binding="{Binding Owner}" Width="200"/>
-                <DataGridTextColumn Header="Last Check-In" Binding="{Binding LastCheckInDisplay}" Width="140"/>
-                <DataGridTextColumn Header="Type" Binding="{Binding DeviceType}" Width="100"/>
-                <DataGridTextColumn Header="Compliance Issues" Binding="{Binding ComplianceIssuesList}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Loading Overlay -->
+        <Border x:Name="LoadingOverlay" 
+                Background="#80000000" 
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid>
+                <StackPanel VerticalAlignment="Center" 
+                            HorizontalAlignment="Center">
+                    <TextBlock Text="Loading compliance data..." 
+                               FontSize="18" 
+                               Foreground="White" 
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,20"/>
+                    <ProgressBar Width="250" 
+                                 Height="10" 
+                                 IsIndeterminate="True" 
+                                 Foreground="#0078D7"
+                                 Background="#444444"/>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

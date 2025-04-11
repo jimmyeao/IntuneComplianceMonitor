@@ -1,4 +1,4 @@
-﻿using MapControl;
+﻿using Microsoft.Maps.MapControl.WPF;
 using System.Windows.Media;
 
 namespace IntuneComplianceMonitor.Models
