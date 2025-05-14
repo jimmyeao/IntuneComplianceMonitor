@@ -25,7 +25,7 @@ namespace IntuneComplianceMonitor.Services
         private readonly GraphServiceClient _graphClient;
         private readonly int _maxConcurrentRequests = 5;
         private readonly SemaphoreSlim _requestThrottler;
-
+        public GraphServiceClient GraphClient => _graphClient;
         private readonly string[] _scopes = new[] {
         "DeviceManagementManagedDevices.Read.All",
         "DeviceManagementConfiguration.Read.All"
@@ -791,7 +791,7 @@ namespace IntuneComplianceMonitor.Services
         }
 
         // Wrapper method to enforce rate limiting
-        private async Task<T> ExecuteWithRateLimitingAsync<T>(Func<Task<T>> graphOperation, CancellationToken cancellationToken = default)
+        public async Task<T> ExecuteWithRateLimitingAsync<T>(Func<Task<T>> graphOperation, CancellationToken cancellationToken = default)
         {
             await _requestThrottler.WaitAsync(cancellationToken);
             try

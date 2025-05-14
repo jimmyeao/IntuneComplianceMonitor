@@ -1,5 +1,6 @@
 ﻿using IntuneComplianceMonitor.Models;
 using Microsoft.Identity.Client;
+using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using System.IO;
 using System.Text.Json;
@@ -62,7 +63,14 @@ public class TokenProvider : IAccessTokenProvider
     #endregion Properties
 
     #region Methods
-
+    public async Task AuthenticateRequestAsync(RequestInformation request)
+    {
+        var token = await GetAuthorizationTokenAsync(new Uri("https://graph.microsoft.com"), null);
+        if (!string.IsNullOrEmpty(token))
+        {
+            request.Headers.Add("Authorization", $"Bearer {token}");
+        }
+    }
     public async Task<string> GetAuthorizationTokenAsync(
         Uri uri,
         Dictionary<string, object> additionalAuthenticationContext = null,

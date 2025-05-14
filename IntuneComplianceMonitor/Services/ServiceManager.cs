@@ -11,7 +11,7 @@ public class ServiceManager
 
     // Make these lazy-initialized with thread-safety
     private Lazy<IntuneService> _intuneService;
-
+    private Lazy<IntuneRemediationService> _remediationService;
     private Lazy<SampleDataService> _sampleDataService;
     private Lazy<SettingsService> _settingsService;
 
@@ -52,6 +52,8 @@ public class ServiceManager
 
     // Expose services with lazy initialization
     public IntuneService IntuneService => _intuneService.Value;
+
+    public IntuneRemediationService RemediationService => _remediationService.Value;
 
     public SampleDataService SampleDataService => _sampleDataService.Value;
     public SettingsService SettingsService => _settingsService.Value;
@@ -101,6 +103,26 @@ public class ServiceManager
                     UseRealData = false;
                     MessageBox.Show($"Could not connect to Intune: {ex.Message}\n\nThe application will use sample data instead.",
                         "Service Initialization Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return null;
+                }
+            }, true);
+
+            // Add the remediation service initialization
+            _remediationService = new Lazy<IntuneRemediationService>(() =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("Initializing RemediationService");
+                    // Only create the remediation service if we have a valid Intune service
+                    if (UseRealData && IntuneService != null)
+                    {
+                        return new IntuneRemediationService(IntuneService);
+                    }
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error initializing RemediationService: {ex.Message}");
                     return null;
                 }
             }, true);

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Device Details"
-        Height="600" Width="1058"
+        Height="668" Width="1058"
         WindowStartupLocation="CenterOwner"
         Style="{StaticResource DarkWindowStyle}"
         ResizeMode="CanResize">
@@ -275,6 +275,160 @@
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="Ownership:" FontWeight="Bold" Margin="0,5" Foreground="{StaticResource TextPrimaryBrush}" />
                             <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Device.Ownership}" Margin="10,5" Foreground="{StaticResource TextPrimaryBrush}" />
                         </Grid>
+                    </ScrollViewer>
+                </TabItem>
+                <!-- Add this as a new tab after the "Device Properties" tab -->
+                <TabItem Header="Remediation Actions"
+         Style="{StaticResource DetailTabItem}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                        <StackPanel Margin="0,0,0,10">
+                            <TextBlock Text="Device Remediation Actions" 
+                       FontWeight="SemiBold" 
+                       FontSize="16" 
+                       Margin="0,0,0,15" 
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+
+                            <TextBlock TextWrapping="Wrap" 
+                       Margin="0,0,0,20" 
+                       Foreground="{StaticResource TextSecondaryBrush}">
+                The following actions can help remediate compliance issues with this device.
+                Use with caution as some actions may impact the user's experience.
+                            </TextBlock>
+
+                            <!-- Sync Action -->
+                            <Border Background="#2D2D35" 
+                    BorderBrush="#444444" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="15" 
+                    Margin="0,0,0,15">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Sync Device" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="Initiate a sync with Intune to refresh policies and check compliance status." 
+                                   TextWrapping="Wrap" 
+                                   Margin="0,5,0,0" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" 
+                            Content="Sync Now" 
+                            Command="{Binding SyncDeviceCommand}" 
+                            Background="#0078D7" 
+                            Foreground="White" 
+                            Padding="10,5" 
+                            VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Notification Action -->
+                            <Border Background="#2D2D35" 
+                    BorderBrush="#444444" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="15" 
+                    Margin="0,0,0,15">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Send Notification" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="Send a custom notification to the device's Company Portal app." 
+                                   TextWrapping="Wrap" 
+                                   Margin="0,5,0,0" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" 
+                            Content="Send" 
+                            Command="{Binding SendNotificationCommand}" 
+                            Background="#0078D7" 
+                            Foreground="White" 
+                            Padding="10,5" 
+                            VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Reboot Action -->
+                            <Border Background="#2D2D35" 
+                    BorderBrush="#444444" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="15" 
+                    Margin="0,0,0,15">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Remote Reboot" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="Remotely reboot the device. The user will receive a notification before reboot." 
+                                   TextWrapping="Wrap" 
+                                   Margin="0,5,0,0" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" 
+                            Content="Reboot" 
+                            Command="{Binding RebootDeviceCommand}" 
+                            Background="#FF9800" 
+                            Foreground="White" 
+                            Padding="10,5" 
+                            VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!-- Wipe Action -->
+                            <Border Background="#3F2020" 
+                    BorderBrush="#FF4444" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="15" 
+                    Margin="0,0,0,15">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Factory Reset Device" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock TextWrapping="Wrap" 
+                                   Margin="0,5,0,0" 
+                                   Foreground="{StaticResource TextSecondaryBrush}">
+                            <Run Text="WARNING: " FontWeight="Bold" />
+                            <Run Text="This will erase all data and settings on the device. This action cannot be undone." />
+                                        </TextBlock>
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" 
+                            Content="Wipe Device" 
+                            Command="{Binding WipeDeviceCommand}" 
+                            Background="#FF5252" 
+                            Foreground="White" 
+                            Padding="10,5" 
+                            VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
                     </ScrollViewer>
                 </TabItem>
             </TabControl>
